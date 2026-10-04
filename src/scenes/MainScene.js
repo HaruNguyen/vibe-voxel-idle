@@ -123,12 +123,12 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5);
   }
 
-  createButtons(width, height) {
+    createButtons(width, height) {
     const btnY = height - 80;
-    const btnW = 180;
+    const btnW = 150;
     const btnH = 55;
-    const spacing = 25;
-    const totalW = 2 * btnW + spacing;
+    const spacing = 20;
+    const totalW = 3 * btnW + 2 * spacing;
     const startX = (width - totalW) / 2;
 
     this.createButton(startX + btnW / 2, btnY, btnW, btnH, 'BATTLE', 0x66e0c0, () => {
@@ -136,7 +136,12 @@ export class MainScene extends Phaser.Scene {
       this.scene.start('BattleScene', { state: this.state });
     });
 
-    this.createButton(startX + btnW + spacing + btnW / 2, btnY, btnW, btnH, 'GACHA', 0xb090ff, () => {
+    this.createButton(startX + btnW + spacing + btnW / 2, btnY, btnW, btnH, 'UPGRADE', 0xffd966, () => {
+      SaveSystem.save(this.state);
+      this.scene.start('UpgradeScene', { state: this.state });
+    });
+
+    this.createButton(startX + 2 * (btnW + spacing) + btnW / 2, btnY, btnW, btnH, 'GACHA', 0xb090ff, () => {
       this.openGacha();
     });
   }
