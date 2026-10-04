@@ -244,9 +244,10 @@ export class BattleScene extends Phaser.Scene {
       aura.arc(x, y, 125, Math.PI, Math.PI * 1.65);
       aura.strokePath();
 
-      // Character sprite - BIG
+      // Character sprite - BIG with per-character scale
+      const charScale = unit.spriteScale || 1.0;
       const img = this.add.image(x, y, unit.key);
-      img.setDisplaySize(240, 240);
+      img.setDisplaySize(240 * charScale, 240 * charScale);
       img.baseScale = img.scaleX;
       if (!isA) img.setFlipX(true);
 
