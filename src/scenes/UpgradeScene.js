@@ -25,35 +25,44 @@ export class UpgradeScene extends Phaser.Scene {
 
   createBackground(width, height) {
     const g = this.add.graphics();
-    g.fillGradientStyle(0x0a0e1a, 0x0a0e1a, 0x1a1030, 0x1a1030, 1);
+    g.fillGradientStyle(0x080a14, 0x080a14, 0x1a1a3a, 0x1a1a3a, 1);
     g.fillRect(0, 0, width, height);
 
+    // Radial glow
+    const glow = this.add.graphics();
+    for (let i = 8; i > 0; i--) {
+      glow.fillStyle(0x66e0c0, 0.006 * i);
+      glow.fillCircle(width / 2, height / 2, 400 + i * 100);
+    }
+
+    // Grid
     const grid = this.add.graphics();
-    grid.lineStyle(1, 0x66e0c0, 0.06);
-    for (let x = 0; x < width; x += 50) grid.lineBetween(x, 0, x, height);
-    for (let y = 0; y < height; y += 50) grid.lineBetween(0, y, width, y);
+    grid.lineStyle(1, 0x66e0c0, 0.05);
+    for (let x = 0; x < width; x += 80) grid.lineBetween(x, 0, x, height);
+    for (let y = 0; y < height; y += 80) grid.lineBetween(0, y, width, y);
   }
 
   createHeader(width) {
-    this.add.text(width / 2, 30, 'UPGRADE', {
-      fontFamily: 'monospace', fontSize: '28px',
+    this.add.text(width / 2, 60, 'UPGRADE', {
+      fontFamily: 'monospace', fontSize: '64px',
       color: '#66e0c0', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3
-    }).setOrigin(0.5);
+      stroke: '#000000', strokeThickness: 8
+    }).setOrigin(0.5).setShadow(0, 0, '#66e0c0', 25, true, true);
 
-    this.goldText = this.add.text(width - 20, 30, `◆ ${this.state.gold}`, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffd966'
+    this.goldText = this.add.text(width - 50, 60, `◆ ${this.state.gold}`, {
+      fontFamily: 'monospace', fontSize: '44px', color: '#ffd966',
+      fontStyle: 'bold', stroke: '#000000', strokeThickness: 5
     }).setOrigin(1, 0.5);
   }
 
   createCharSelector(width, height) {
-    const y = 90;
-    const cardW = 70;
-    const cardH = 70;
-    const spacing = 8;
+    const y = 200;
+    const cardW = 120;
+    const cardH = 120;
+    const spacing = 16;
     const chars = this.state.roster;
     const totalW = chars.length * (cardW + spacing) - spacing;
-    const startX = Math.max(20, (width - totalW) / 2);
+    const startX = Math.max(40, (width - totalW) / 2);
 
     chars.forEach((entry, i) => {
       const char = getCharacterById(entry.id);
@@ -63,16 +72,26 @@ export class UpgradeScene extends Phaser.Scene {
       const isSelected = entry.id === this.selectedCharId;
       const element = ELEMENTS[char.element];
 
+      const glowBg = this.add.rectangle(x, y, cardW + 6, cardH + 6,
+        element.glow, isSelected ? 0.3 : 0);
+
       const bg = this.add.rectangle(x, y, cardW, cardH,
         isSelected ? element.color : 0x1a2030, isSelected ? 0.4 : 1)
-        .setStrokeStyle(2, isSelected ? element.glow : 0x333333)
+        .setStrokeStyle(isSelected ? 4 : 2, isSelected ? element.glow : 0x333333)
         .setInteractive({ useHandCursor: true });
 
-      const img = this.add.image(x, y, char.key).setDisplaySize(cardW - 10, cardH - 10);
+      this.add.image(x, y, char.key).setDisplaySize(cardW - 20, cardH - 20);
 
       bg.on('pointerdown', () => {
         this.selectedCharId = entry.id;
         this.scene.restart({ state: this.state, charId: entry.id });
+      });
+
+      bg.on('pointerover', () => {
+        if (!isSelected) bg.setStrokeStyle(3, element.glow, 0.8);
+      });
+      bg.on('pointerout', () => {
+        if (!isSelected) bg.setStrokeStyle(2, 0x333333);
       });
     });
   }
@@ -83,28 +102,38 @@ export class UpgradeScene extends Phaser.Scene {
     if (!char || !entry) return;
 
     const element = ELEMENTS[char.element];
-    const panelY = 200;
+    const panelY = 400;
 
-    // Character preview
-    this.add.image(width / 2, panelY + 40, char.key).setDisplaySize(140, 140);
+    // Character sprite big
+    this.add.image(width / 2, panelY, char.key).setDisplaySize(240, 240);
 
-    this.add.text(width / 2, panelY + 130, char.name, {
+    // Element glow behind
+    const glow = this.add.graphics();
+    for (let i = 5; i > 0; i--) {
+      glow.fillStyle(element.glow, 0.05 * i);
+      glow.fillCircle(width / 2, panelY, 100 + i * 30);
+    }
+
+    this.add.text(width / 2, panelY + 170, char.name, {
+      fontFamily: 'monospace', fontSize: '40px',
+      color: '#ffffff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 5
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2, panelY + 215, `${element.name} · ${char.role}`, {
       fontFamily: 'monospace', fontSize: '22px',
-      color: '#ffffff', fontStyle: 'bold'
+      color: '#' + element.glow.toString(16).padStart(6, '0'),
+      fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    this.add.text(width / 2, panelY + 155, `${element.name} · ${char.role}`, {
-      fontFamily: 'monospace', fontSize: '12px',
-      color: '#' + element.glow.toString(16).padStart(6, '0')
-    }).setOrigin(0.5);
-
-    this.add.text(width / 2, panelY + 175, `Lv.${entry.level}  ★${entry.stars}`, {
-      fontFamily: 'monospace', fontSize: '14px', color: '#ffd966'
+    this.add.text(width / 2, panelY + 250, `Lv.${entry.level}  ★${entry.stars}`, {
+      fontFamily: 'monospace', fontSize: '26px', color: '#ffd966',
+      fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0.5);
 
     // Upgrade rows
-    const startY = panelY + 210;
-    const rowH = 62;
+    const startY = panelY + 330;
+    const rowH = 100;
     const types = ['HP', 'ATK', 'DEF', 'SPD'];
 
     types.forEach((type, i) => {
@@ -118,22 +147,24 @@ export class UpgradeScene extends Phaser.Scene {
     const cost = UpgradeSystem.getCost(type, currentLevel);
     const canAfford = this.state.gold >= cost;
 
-    const rowW = 500;
+    const rowW = 1000;
     const rowX = width / 2 - rowW / 2;
 
     // Row background
-    this.add.rectangle(width / 2, y, rowW, 54, 0x121a2e)
-      .setStrokeStyle(1, config.color, 0.4);
+    this.add.rectangle(width / 2, y, rowW, 90, 0x0a0e1a)
+      .setStrokeStyle(2, config.color, canAfford ? 0.6 : 0.2);
 
-    // Icon + Name
-    this.add.text(rowX + 15, y - 10, config.icon, {
-      fontSize: '20px'
+    // Icon
+    this.add.text(rowX + 30, y, config.icon, {
+      fontSize: '38px'
     }).setOrigin(0, 0.5);
 
-    this.add.text(rowX + 50, y - 12, config.name, {
-      fontFamily: 'monospace', fontSize: '15px',
+    // Name
+    this.add.text(rowX + 90, y, config.name, {
+      fontFamily: 'monospace', fontSize: '30px',
       color: '#' + config.color.toString(16).padStart(6, '0'),
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5);
 
     // Current value
@@ -143,40 +174,42 @@ export class UpgradeScene extends Phaser.Scene {
     const nextMult = UpgradeSystem.getStatMultiplier(type, currentLevel + 1);
     const nextValue = Math.floor(baseStat * nextMult);
 
-    this.add.text(rowX + 130, y - 12, `Lv.${currentLevel}`, {
-      fontFamily: 'monospace', fontSize: '13px', color: '#8899aa'
+    this.add.text(rowX + 230, y, `Lv.${currentLevel}`, {
+      fontFamily: 'monospace', fontSize: '22px', color: '#8899aa'
     }).setOrigin(0, 0.5);
 
-    this.add.text(rowX + 200, y - 12, `${currentValue}`, {
-      fontFamily: 'monospace', fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+    this.add.text(rowX + 350, y, `${currentValue}`, {
+      fontFamily: 'monospace', fontSize: '32px', color: '#ffffff',
+      fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5);
 
-    this.add.text(rowX + 260, y - 12, `→ ${nextValue}`, {
-      fontFamily: 'monospace', fontSize: '14px',
-      color: '#' + config.color.toString(16).padStart(6, '0')
+    this.add.text(rowX + 470, y, `→ ${nextValue}`, {
+      fontFamily: 'monospace', fontSize: '26px',
+      color: '#' + config.color.toString(16).padStart(6, '0'),
+      fontStyle: 'bold'
     }).setOrigin(0, 0.5);
 
     // Upgrade button
-    const btnX = rowX + rowW - 100;
-    const btn = this.add.rectangle(btnX, y, 160, 42,
+    const btnX = rowX + rowW - 130;
+    const btn = this.add.rectangle(btnX, y, 220, 66,
       canAfford ? 0x1a2030 : 0x0a0e1a)
-      .setStrokeStyle(2, canAfford ? config.color : 0x333333)
+      .setStrokeStyle(canAfford ? 3 : 2, canAfford ? config.color : 0x333333)
       .setInteractive({ useHandCursor: canAfford });
 
-    const costText = this.add.text(btnX, y, `◆ ${cost}`, {
-      fontFamily: 'monospace', fontSize: '15px',
+    this.add.text(btnX, y, `◆ ${cost}`, {
+      fontFamily: 'monospace', fontSize: '26px',
       color: canAfford ? '#ffd966' : '#555555',
-      fontStyle: 'bold'
+      fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0.5);
 
     if (canAfford) {
-      btn.on('pointerover', () => btn.setFillStyle(config.color, 0.2));
+      btn.on('pointerover', () => btn.setFillStyle(config.color, 0.25));
       btn.on('pointerout', () => btn.setFillStyle(0x1a2030));
       btn.on('pointerdown', () => {
         const result = UpgradeSystem.upgrade(this.state, this.selectedCharId, type);
         if (result.success) {
           SaveSystem.save(this.state);
-          this.showToast(`+1 ${type} (Lv.${result.newLevel})`, config.color);
+          this.showToast(`+1 ${type} → Lv.${result.newLevel}`, config.color);
           this.time.delayedCall(300, () => {
             this.scene.restart({ state: this.state, charId: this.selectedCharId });
           });
@@ -186,14 +219,17 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   createBackButton(width, height) {
-    const btn = this.add.rectangle(80, height - 40, 120, 45, 0x1a2030)
-      .setStrokeStyle(2, 0x8899aa)
+    const btn = this.add.rectangle(160, height - 80, 220, 70, 0x1a2030)
+      .setStrokeStyle(3, 0x8899aa)
       .setInteractive({ useHandCursor: true });
 
-    this.add.text(80, height - 40, '← BACK', {
-      fontFamily: 'monospace', fontSize: '15px', color: '#8899aa'
+    this.add.text(160, height - 80, '← BACK', {
+      fontFamily: 'monospace', fontSize: '26px', color: '#8899aa',
+      fontStyle: 'bold', letterSpacing: 3
     }).setOrigin(0.5);
 
+    btn.on('pointerover', () => btn.setFillStyle(0x8899aa, 0.2));
+    btn.on('pointerout', () => btn.setFillStyle(0x1a2030));
     btn.on('pointerdown', () => {
       SaveSystem.save(this.state);
       this.scene.start('MainScene');
@@ -202,12 +238,13 @@ export class UpgradeScene extends Phaser.Scene {
 
   showToast(message, color) {
     const { width } = this.scale;
-    const toast = this.add.text(width / 2, 550, message, {
-      fontFamily: 'monospace', fontSize: '20px',
+    const toast = this.add.text(width / 2, 950, message, {
+      fontFamily: 'monospace', fontSize: '38px',
       color: '#' + color.toString(16).padStart(6, '0'),
       backgroundColor: '#121a2e',
-      padding: { x: 20, y: 12 },
-      fontStyle: 'bold'
+      padding: { x: 40, y: 24 },
+      fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5).setDepth(1000);
 
     toast.setAlpha(0);
