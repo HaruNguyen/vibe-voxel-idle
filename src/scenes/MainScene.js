@@ -146,8 +146,9 @@ export class MainScene extends Phaser.Scene {
       .setStrokeStyle(3, element.glow, 1);
 
     // Character sprite - BIG and centered
+    const charScale = char.spriteScale || 1.0;
     const img = this.add.image(x, y - 40, char.key);
-    img.setDisplaySize(240, 240);
+    img.setDisplaySize(240 * charScale, 240 * charScale);
 
     // Element icon top-right
     this.add.text(x + w / 2 - 30, y - h / 2 + 30, this.getElementIcon(char.element), {
