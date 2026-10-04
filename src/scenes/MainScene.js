@@ -192,14 +192,54 @@ export class MainScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    card.setInteractive({ useHandCursor: true });
+        card.setInteractive({ useHandCursor: true });
+
+    // Store original scales
+    const originalCardScale = card.scaleX;
+    const originalGlowScale = glowBg.scaleX;
+    const originalImgScaleX = img.scaleX;
+    const originalImgScaleY = img.scaleY;
+
     card.on('pointerover', () => {
-      this.tweens.add({ targets: [card, glowBg, img], scale: 1.05, duration: 150 });
+      this.tweens.add({
+        targets: card,
+        scaleX: originalCardScale * 1.05,
+        scaleY: originalCardScale * 1.05,
+        duration: 150
+      });
+      this.tweens.add({
+        targets: glowBg,
+        scaleX: originalGlowScale * 1.05,
+        scaleY: originalGlowScale * 1.05,
+        duration: 150
+      });
+      this.tweens.add({
+        targets: img,
+        scaleX: originalImgScaleX * 1.08,
+        scaleY: originalImgScaleY * 1.08,
+        duration: 150
+      });
     });
     card.on('pointerout', () => {
-      this.tweens.add({ targets: [card, glowBg, img], scale: 1, duration: 150 });
+      this.tweens.add({
+        targets: card,
+        scaleX: originalCardScale,
+        scaleY: originalCardScale,
+        duration: 150
+      });
+      this.tweens.add({
+        targets: glowBg,
+        scaleX: originalGlowScale,
+        scaleY: originalGlowScale,
+        duration: 150
+      });
+      this.tweens.add({
+        targets: img,
+        scaleX: originalImgScaleX,
+        scaleY: originalImgScaleY,
+        duration: 150
+      });
     });
-  }
 
   getElementIcon(element) {
     const icons = {
