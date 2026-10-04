@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
 import { MainScene } from './scenes/MainScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
+import { UpgradeScene } from './scenes/UpgradeScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -13,7 +14,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [BootScene, MainScene, BattleScene]
+  scene: [BootScene, MainScene, BattleScene, UpgradeScene]
 };
 
 new Phaser.Game(config);
