@@ -3,6 +3,7 @@ import { BootScene } from './scenes/BootScene.js';
 import { MainScene } from './scenes/MainScene.js';
 import { BattleScene } from './scenes/BattleScene.js';
 import { UpgradeScene } from './scenes/UpgradeScene.js';
+import { InventoryScene } from './scenes/InventoryScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -19,7 +20,7 @@ const config = {
     roundPixels: false,
     pixelArt: false
   },
-  scene: [BootScene, MainScene, BattleScene, UpgradeScene]
+  scene: [BootScene, MainScene, BattleScene, UpgradeScene, InventoryScene]
 };
 
 new Phaser.Game(config);
