@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { CHARACTERS } from '../data/characters.js';
 
-// Import tất cả ảnh — Vite sẽ bundle chúng vào build
 import char01 from '../assets/characters/char-01.png';
 import char02 from '../assets/characters/char-02.png';
 import char03 from '../assets/characters/char-03.png';
@@ -38,16 +37,17 @@ export class BootScene extends Phaser.Scene {
   preload() {
     const { width, height } = this.scale;
 
-    this.add.text(width / 2, height / 2 - 40, 'LOADING VIBERS...', {
+    this.add.text(width / 2, height / 2 - 80, 'LOADING VIBERS...', {
       fontFamily: 'monospace',
-      fontSize: '24px',
-      color: '#66e0c0'
+      fontSize: '48px',
+      color: '#66e0c0',
+      fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    const barW = 400;
-    const barH = 20;
+    const barW = 800;
+    const barH = 30;
     const barX = (width - barW) / 2;
-    const barY = height / 2 + 20;
+    const barY = height / 2 + 40;
     this.add.rectangle(barX, barY, barW, barH, 0x1a2030).setOrigin(0, 0.5);
     const fillBar = this.add.rectangle(barX, barY, 0, barH, 0x66e0c0).setOrigin(0, 0.5);
 
