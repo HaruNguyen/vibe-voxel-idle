@@ -203,12 +203,12 @@ export class MainScene extends Phaser.Scene {
     return icons[element] || '◆';
   }
 
-  createButtons(width, height) {
+    createButtons(width, height) {
     const btnY = height - 140;
-    const btnW = 320;
+    const btnW = 260;
     const btnH = 90;
-    const spacing = 40;
-    const totalW = 3 * btnW + 2 * spacing;
+    const spacing = 30;
+    const totalW = 4 * btnW + 3 * spacing;
     const startX = (width - totalW) / 2;
 
     this.createButton(startX + btnW / 2, btnY, btnW, btnH, 'BATTLE', 0x66e0c0, () => {
@@ -216,16 +216,21 @@ export class MainScene extends Phaser.Scene {
       this.scene.start('BattleScene', { state: this.state });
     });
 
-    this.createButton(startX + btnW + spacing + btnW / 2, btnY, btnW, btnH, 'UPGRADE', 0xffd966, () => {
+    this.createButton(startX + btnW + spacing + btnW / 2, btnY, btnW, btnH, 'TEAM', 0x4dd0e1, () => {
+      SaveSystem.save(this.state);
+      this.scene.start('InventoryScene', { state: this.state });
+    });
+
+    this.createButton(startX + 2 * (btnW + spacing) + btnW / 2, btnY, btnW, btnH, 'UPGRADE', 0xffd966, () => {
       SaveSystem.save(this.state);
       this.scene.start('UpgradeScene', { state: this.state });
     });
 
-    this.createButton(startX + 2 * (btnW + spacing) + btnW / 2, btnY, btnW, btnH, 'GACHA', 0xb090ff, () => {
+    this.createButton(startX + 3 * (btnW + spacing) + btnW / 2, btnY, btnW, btnH, 'GACHA', 0xb090ff, () => {
       this.openGacha();
     });
   }
-
+  
   createButton(x, y, w, h, label, color, onClick) {
     const btn = this.add.rectangle(x, y, w, h, 0x1a2030)
       .setStrokeStyle(3, color, 1)
