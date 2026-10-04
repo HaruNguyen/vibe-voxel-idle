@@ -219,8 +219,8 @@ export class BattleScene extends Phaser.Scene {
   renderTeam(team, side, width, height) {
     const isA = side === 'A';
     const baseY = height / 2 + 140;
-    const spacing = 300;
-    const centerX = isA ? width / 2 - 550 : width / 2 + 550;
+    const spacing = 260;
+    const centerX = isA ? width / 2 - 520 : width / 2 + 520;
     const startX = centerX - (team.length - 1) * spacing / 2;
 
     team.forEach((unit, i) => {
