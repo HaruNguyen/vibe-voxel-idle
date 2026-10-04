@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ELEMENTS, getCharacterById } from '../data/characters.js';
+import { ELEMENTS } from '../data/characters.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { createUnit, generateEnemyTeam, simulateBattle } from '../systems/BattleSystem.js';
 
@@ -79,9 +79,10 @@ export class BattleScene extends Phaser.Scene {
         fontFamily: 'monospace', fontSize: '10px', color: '#ffffff'
       }).setOrigin(0.5);
 
-      this.unitSprites[unit.id + side] = img;
-      this.unitHpBars[unit.id + side] = hpBar;
-      this.unitHpTexts[unit.id + side] = hpText;
+      const key = unit.id + side;
+      this.unitSprites[key] = img;
+      this.unitHpBars[key] = hpBar;
+      this.unitHpTexts[key] = hpText;
       hpBar.maxWidth = barW;
       hpBar.baseX = x - barW / 2;
     });
@@ -89,7 +90,7 @@ export class BattleScene extends Phaser.Scene {
 
   playBattleLog() {
     let index = 0;
-    const stepDelay = 600;
+    const stepDelay = 500;
 
     const nextStep = () => {
       if (index >= this.battleLog.length) {
@@ -105,8 +106,6 @@ export class BattleScene extends Phaser.Scene {
         this.time.delayedCall(stepDelay, nextStep);
       } else if (event.type === 'ko') {
         this.animateKO(event);
-        this.time.delayedCall(stepDelay, nextStep);
-      } else if (event.type === 'end') {
         this.time.delayedCall(stepDelay, nextStep);
       } else {
         nextStep();
@@ -165,7 +164,6 @@ export class BattleScene extends Phaser.Scene {
       if (hpBar && unit) {
         const ratio = Math.max(0, event.targetHp / unit.maxHp);
         hpBar.width = hpBar.maxWidth * ratio;
-        hpBar.fillColor = ratio > 0.5 ? 0x66e0c0 : ratio > 0.25 ? 0xffd966 : 0xff5555;
       }
       if (hpText) hpText.setText(`${Math.max(0, event.targetHp)}`);
     });
@@ -198,4 +196,45 @@ export class BattleScene extends Phaser.Scene {
     this.state.totalBattles += 1;
     SaveSystem.save(this.state);
 
-    const overlay = this.add.rectangle(0, 0, width,
+    this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
+
+    const popupColor = isWin ? 0x66e0c0 : 0xff5555;
+    const popupText = isWin ? 'VICTORY!' : 'DEFEAT';
+    const rewardText = isWin
+      ? `+${50 + (this.state.stage - 1) * 10} GOLD`
+      : '+10 GOLD';
+
+    this.add.rectangle(width / 2, height / 2, 420, 260, 0x121a2e)
+      .setStrokeStyle(2, popupColor);
+
+    this.add.text(width / 2, height / 2 - 80, popupText, {
+      fontFamily: 'monospace', fontSize: '36px',
+      color: '#' + popupColor.toString(16).padStart(6, '0'),
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2, height / 2 - 20, rewardText, {
+      fontFamily: 'monospace', fontSize: '24px', color: '#ffd966', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    if (isWin) {
+      this.add.text(width / 2, height / 2 + 20, `Stage ${this.state.stage} unlocked!`, {
+        fontFamily: 'monospace', fontSize: '14px', color: '#8899aa'
+      }).setOrigin(0.5);
+    }
+
+    const btn = this.add.rectangle(width / 2, height / 2 + 90, 200, 48, 0x1a2030)
+      .setStrokeStyle(2, popupColor)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(width / 2, height / 2 + 90, 'CONTINUE', {
+      fontFamily: 'monospace', fontSize: '16px',
+      color: '#' + popupColor.toString(16).padStart(6, '0'),
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    btn.on('pointerdown', () => {
+      this.scene.start('MainScene');
+    });
+  }
+}
