@@ -108,13 +108,30 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(0.5, 0);
   }
 
-  createTeamDisplay(width, height) {
+    createTeamDisplay(width, height) {
     const teamY = height / 2 - 20;
-    const cardW = 280;
-    const cardH = 360;
-    const spacing = 60;
     const team = this.state.team;
-    const totalW = team.length * cardW + (team.length - 1) * spacing;
+    const teamSize = team.length;
+
+    // Dynamic sizing based on team size
+    const maxTotalW = width - 200;
+    const baseCardW = 280;
+    const baseCardH = 360;
+    const baseSpacing = 60;
+
+    let cardW = baseCardW;
+    let cardH = baseCardH;
+    let spacing = baseSpacing;
+
+    const estimatedTotalW = teamSize * cardW + (teamSize - 1) * spacing;
+    if (estimatedTotalW > maxTotalW) {
+      const ratio = maxTotalW / estimatedTotalW;
+      cardW = Math.floor(baseCardW * ratio);
+      cardH = Math.floor(baseCardH * ratio);
+      spacing = Math.floor(baseSpacing * ratio);
+    }
+
+    const totalW = teamSize * cardW + (teamSize - 1) * spacing;
     const startX = (width - totalW) / 2;
 
     this.add.text(width / 2, teamY - 240, 'YOUR TEAM', {
@@ -147,8 +164,9 @@ export class MainScene extends Phaser.Scene {
 
     // Character sprite - BIG and centered
     const charScale = char.spriteScale || 1.0;
-    const img = this.add.image(x, y - 40, char.key);
-    img.setDisplaySize(240 * charScale, 240 * charScale);
+    const spriteSize = w * 0.85;
+    const img = this.add.image(x, y - h * 0.15, char.key);
+    img.setDisplaySize(spriteSize * charScale, spriteSize * charScale);
 
     // Element icon top-right
     this.add.text(x + w / 2 - 30, y - h / 2 + 30, this.getElementIcon(char.element), {
