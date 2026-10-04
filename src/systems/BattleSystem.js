@@ -1,4 +1,5 @@
 import { getCharacterById } from '../data/characters.js';
+import { UpgradeSystem } from './UpgradeSystem.js';
 
 const ADVANTAGE = {
   EARTH:    { ELECTRIC: 1.5, NATURE: 0.75 },
@@ -17,11 +18,11 @@ export function getElementMultiplier(atkElement, defElement) {
   return 1.0;
 }
 
-export function createUnit(charId, level, team) {
+export function createUnit(charId, level, team, rosterEntry = null) {
   const char = getCharacterById(charId);
   const levelBonus = 1 + (level - 1) * 0.15;
 
-  return {
+  let unit = {
     ...char,
     level,
     team,
@@ -32,6 +33,13 @@ export function createUnit(charId, level, team) {
     spd: char.spd,
     alive: true
   };
+
+  // Apply upgrades if rosterEntry provided
+  if (rosterEntry) {
+    unit = UpgradeSystem.applyUpgrades(unit, rosterEntry);
+  }
+
+  return unit;
 }
 
 function performAttack(attacker, defender) {
