@@ -22,7 +22,6 @@ export class InventoryScene extends Phaser.Scene {
     this.createFilterBar(width);
     this.createCharacterGrid(width, height);
     this.createTeamPanel(width, height);
-    this.createBackButton(width, height);
   }
 
   createBackground(width, height) {
@@ -43,39 +42,57 @@ export class InventoryScene extends Phaser.Scene {
   }
 
   createHeader(width) {
+    const backBtn = this.add.rectangle(120, 50, 180, 50, 0x1a2030)
+      .setStrokeStyle(2, 0x8899aa)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(120, 50, '← BACK', {
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '22px', color: '#8899aa',
+      fontStyle: '600', letterSpacing: 2
+    }).setOrigin(0.5);
+
+    backBtn.on('pointerover', () => backBtn.setFillStyle(0x8899aa, 0.2));
+    backBtn.on('pointerout', () => backBtn.setFillStyle(0x1a2030));
+    backBtn.on('pointerdown', () => {
+      SaveSystem.save(this.state);
+      this.scene.start('MainScene');
+    });
+
     this.add.text(width / 2, 50, 'INVENTORY', {
-      fontFamily: 'monospace', fontSize: '56px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '56px',
       color: '#66e0c0', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 8
     }).setOrigin(0.5).setShadow(0, 0, '#66e0c0', 20, true, true);
 
     this.goldText = this.add.text(width - 50, 50, `◆ ${this.state.gold}`, {
-      fontFamily: 'monospace', fontSize: '36px', color: '#ffd966',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '36px', color: '#ffd966',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 5
     }).setOrigin(1, 0.5);
 
-    this.countText = this.add.text(50, 50, `${this.state.roster.length} / 12 VIBERS`, {
-      fontFamily: 'monospace', fontSize: '24px', color: '#8899aa',
-      fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
+    this.add.text(320, 50, `${this.state.roster.length} / 12 VIBERS`, {
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '24px', color: '#8899aa',
+      fontStyle: '600', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5);
   }
 
   createFilterBar(width) {
     const filterY = 130;
 
-    // Element filter label
     this.add.text(50, filterY, 'FILTER:', {
-      fontFamily: 'monospace', fontSize: '18px', color: '#8899aa',
-      fontStyle: 'bold'
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '20px', color: '#8899aa',
+      fontStyle: '600', letterSpacing: 2
     }).setOrigin(0, 0.5);
 
-    // Filter buttons
     const filterX = 160;
     const btnW = 130;
     const btnH = 44;
     const spacing = 10;
 
-    this.filterButtons = {};
     ELEMENT_FILTERS.forEach((filter, i) => {
       const x = filterX + i * (btnW + spacing) + btnW / 2;
       const isActive = filter.key === this.elementFilter;
@@ -85,35 +102,35 @@ export class InventoryScene extends Phaser.Scene {
         .setStrokeStyle(2, isActive ? filter.color : 0x333333)
         .setInteractive({ useHandCursor: true });
 
-      const label = this.add.text(x, filterY, filter.name.toUpperCase(), {
-        fontFamily: 'monospace', fontSize: '14px',
+      this.add.text(x, filterY, filter.name.toUpperCase(), {
+        fontFamily: 'Rajdhani, monospace',
+        fontSize: '16px',
         color: isActive ? '#' + filter.color.toString(16).padStart(6, '0') : '#8899aa',
-        fontStyle: 'bold'
+        fontStyle: '700', letterSpacing: 1
       }).setOrigin(0.5);
 
       btn.on('pointerdown', () => {
         this.elementFilter = filter.key;
         this.scene.restart({ state: this.state });
       });
-
-      this.filterButtons[filter.key] = { btn, label };
     });
 
-    // Sort dropdown (cycle through modes)
     const sortY = filterY + 60;
     this.add.text(50, sortY, 'SORT:', {
-      fontFamily: 'monospace', fontSize: '18px', color: '#8899aa',
-      fontStyle: 'bold'
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '20px', color: '#8899aa',
+      fontStyle: '600', letterSpacing: 2
     }).setOrigin(0, 0.5);
 
-    const sortX = 160;
+    const sortX = 260;
     const currentSort = SORT_MODES.find(s => s.key === this.sortMode);
-    const sortBtn = this.add.rectangle(sortX + 100, sortY, 200, 44, 0x1a2030)
+    const sortBtn = this.add.rectangle(sortX, sortY, 200, 44, 0x1a2030)
       .setStrokeStyle(2, 0x66e0c0)
       .setInteractive({ useHandCursor: true });
 
-    this.add.text(sortX + 100, sortY, `▼ ${currentSort.name.toUpperCase()}`, {
-      fontFamily: 'monospace', fontSize: '16px', color: '#66e0c0',
+    this.add.text(sortX, sortY, `▼ ${currentSort.name.toUpperCase()}`, {
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '16px', color: '#66e0c0',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
@@ -136,11 +153,10 @@ export class InventoryScene extends Phaser.Scene {
     const filtered = TeamSystem.filterRoster(this.state.roster, this.elementFilter);
     const sorted = TeamSystem.sortRoster(filtered, this.sortMode);
 
-    // Empty message
     if (sorted.length === 0) {
       this.add.text(width / 2, gridY + 100, 'NO VIBERS IN THIS CATEGORY', {
-        fontFamily: 'monospace', fontSize: '24px', color: '#666666',
-        fontStyle: 'bold'
+        fontFamily: 'Orbitron, monospace',
+        fontSize: '24px', color: '#666666', fontStyle: 'bold'
       }).setOrigin(0.5);
       return;
     }
@@ -162,35 +178,32 @@ export class InventoryScene extends Phaser.Scene {
     const element = ELEMENTS[char.element];
     const isInTeam = TeamSystem.isInTeam(this.state, entry.id);
 
-    // Card background
     this.add.rectangle(x, y, w, h, 0x0a0e1a, 0.95)
       .setStrokeStyle(isInTeam ? 4 : 2, isInTeam ? 0xffd966 : element.glow);
 
-    // Character sprite
     const charScale = char.spriteScale || 1.0;
     const img = this.add.image(x, y - 20, char.key);
     img.setDisplaySize(120 * charScale, 120 * charScale);
 
-    // Name
     this.add.text(x, y + h / 2 - 35, char.name, {
-      fontFamily: 'monospace', fontSize: '16px', color: '#ffffff',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '14px', color: '#ffffff',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0.5);
 
-    // Level + Stars
     this.add.text(x, y + h / 2 - 12, `Lv.${entry.level}  ★${entry.stars}`, {
-      fontFamily: 'monospace', fontSize: '13px', color: '#ffd966'
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '12px', color: '#ffd966'
     }).setOrigin(0.5);
 
-    // Team badge (if in team)
     if (isInTeam) {
       this.add.text(x + w / 2 - 15, y - h / 2 + 15, '★', {
-        fontFamily: 'monospace', fontSize: '24px', color: '#ffd966',
+        fontFamily: 'Rajdhani, monospace',
+        fontSize: '24px', color: '#ffd966',
         stroke: '#000000', strokeThickness: 3
       }).setOrigin(0.5);
     }
 
-    // Interactive click
     const hitArea = this.add.rectangle(x, y, w, h, 0x000000, 0)
       .setInteractive({ useHandCursor: true });
 
@@ -222,24 +235,22 @@ export class InventoryScene extends Phaser.Scene {
     const panelY = height - 220;
     const panelH = 180;
 
-    // Panel background
     this.add.rectangle(width / 2, panelY, width - 100, panelH, 0x0a0e1a, 0.8)
       .setStrokeStyle(2, 0x66e0c0, 0.5);
 
-    // Title
     this.add.text(60, panelY - panelH / 2 + 25, `YOUR TEAM (${this.state.team.length}/5)`, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#66e0c0',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '22px', color: '#66e0c0',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5);
 
-    // Power score
     const power = TeamSystem.getTeamPower(this.state);
     this.add.text(width - 60, panelY - panelH / 2 + 25, `POWER: ${power.toLocaleString()}`, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffd966',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '22px', color: '#ffd966',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(1, 0.5);
 
-    // Team slots
     const slotSize = 90;
     const slotSpacing = 20;
     const slotsY = panelY + 10;
@@ -257,16 +268,16 @@ export class InventoryScene extends Phaser.Scene {
         this.add.rectangle(x, slotsY, slotSize, slotSize, 0x1a2030)
           .setStrokeStyle(2, element.glow);
 
+        const charScale = char.spriteScale || 1.0;
         const img = this.add.image(x, slotsY, char.key);
-        img.setDisplaySize(slotSize - 15, slotSize - 15);
+        img.setDisplaySize((slotSize - 15) * charScale, (slotSize - 15) * charScale);
 
-        // Remove button
         const removeBtn = this.add.circle(x + slotSize / 2 - 12, slotsY - slotSize / 2 + 12, 12, 0xff5555)
           .setInteractive({ useHandCursor: true });
 
         this.add.text(x + slotSize / 2 - 12, slotsY - slotSize / 2 + 12, '×', {
-          fontFamily: 'monospace', fontSize: '18px', color: '#ffffff',
-          fontStyle: 'bold'
+          fontFamily: 'Rajdhani, monospace',
+          fontSize: '18px', color: '#ffffff', fontStyle: 'bold'
         }).setOrigin(0.5);
 
         removeBtn.on('pointerdown', () => {
@@ -281,12 +292,12 @@ export class InventoryScene extends Phaser.Scene {
           .setStrokeStyle(2, 0x333333, 0.5);
 
         this.add.text(x, slotsY, '+', {
-          fontFamily: 'monospace', fontSize: '36px', color: '#444444'
+          fontFamily: 'Rajdhani, monospace',
+          fontSize: '36px', color: '#444444'
         }).setOrigin(0.5);
       }
     }
 
-    // Action buttons
     const btnY = panelY + 85;
     const btnW = 180;
     const btnH = 44;
@@ -319,7 +330,8 @@ export class InventoryScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.add.text(x, y, label, {
-      fontFamily: 'monospace', fontSize: '18px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '18px',
       color: '#' + color.toString(16).padStart(6, '0'),
       fontStyle: 'bold', letterSpacing: 2
     }).setOrigin(0.5);
@@ -327,23 +339,5 @@ export class InventoryScene extends Phaser.Scene {
     btn.on('pointerover', () => btn.setFillStyle(color, 0.2));
     btn.on('pointerout', () => btn.setFillStyle(0x1a2030, 1));
     btn.on('pointerdown', onClick);
-  }
-
-  createBackButton(width, height) {
-    const btn = this.add.rectangle(120, 50, 180, 50, 0x1a2030)
-      .setStrokeStyle(2, 0x8899aa)
-      .setInteractive({ useHandCursor: true });
-
-    this.add.text(120, 50, '← BACK', {
-      fontFamily: 'monospace', fontSize: '18px', color: '#8899aa',
-      fontStyle: 'bold', letterSpacing: 3
-    }).setOrigin(0.5);
-
-    btn.on('pointerover', () => btn.setFillStyle(0x8899aa, 0.2));
-    btn.on('pointerout', () => btn.setFillStyle(0x1a2030));
-    btn.on('pointerdown', () => {
-      SaveSystem.save(this.state);
-      this.scene.start('MainScene');
-    });
   }
 }
