@@ -34,7 +34,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.teamA = this.state.team.map(id => {
       const roster = this.state.roster.find(r => r.id === id);
-      return createUnit(id, roster ? roster.level : 1, 'A');
+      return createUnit(id, roster ? roster.level : 1, 'A', roster);
     });
     this.teamB = generateEnemyTeam(this.state.stage);
 
