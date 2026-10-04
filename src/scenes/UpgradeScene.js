@@ -105,7 +105,8 @@ export class UpgradeScene extends Phaser.Scene {
     const panelY = 400;
 
     // Character sprite big
-    this.add.image(width / 2, panelY, char.key).setDisplaySize(240, 240);
+    const charScale = char.spriteScale || 1.0;
+    this.add.image(width / 2, panelY, char.key).setDisplaySize(240 * charScale, 240 * charScale);
 
     // Element glow behind
     const glow = this.add.graphics();
