@@ -48,12 +48,11 @@ export class BattleScene extends Phaser.Scene {
     this.unitHpTexts = {};
     this.unitGlows = {};
     this.unitHomePositions = {};
-    this.particleEmitters = {};
+    this.unitElementIcons = {};
 
     this.renderTeam(this.teamA, 'A', width, height);
     this.renderTeam(this.teamB, 'B', width, height);
 
-    // VS banner with animated entrance
     const vs = this.add.text(width / 2, height / 2 - 20, 'VS', {
       fontFamily: 'monospace', fontSize: '64px', color: '#66e0c0', fontStyle: 'bold'
     }).setOrigin(0.5).setAlpha(0).setScale(0.3);
@@ -69,25 +68,21 @@ export class BattleScene extends Phaser.Scene {
   }
 
   createBackground(width, height) {
-    // Gradient
     const g = this.add.graphics();
     g.fillGradientStyle(0x0a0e1a, 0x0a0e1a, 0x1a1030, 0x1a1030, 1);
     g.fillRect(0, 0, width, height);
 
-    // Radial glow at center
     const glow = this.add.graphics();
     for (let i = 6; i > 0; i--) {
       glow.fillStyle(0x66e0c0, 0.015 * i);
       glow.fillCircle(width / 2, height / 2, 200 + i * 30);
     }
 
-    // Grid
     const grid = this.add.graphics();
     grid.lineStyle(1, 0x66e0c0, 0.05);
     for (let x = 0; x < width; x += 50) grid.lineBetween(x, 0, x, height);
     for (let y = 0; y < height; y += 50) grid.lineBetween(0, y, width, y);
 
-    // Stage text with subtle pulse
     const stageText = this.add.text(width / 2, 30, `STAGE ${this.state.stage}`, {
       fontFamily: 'monospace', fontSize: '20px', color: '#8899aa'
     }).setOrigin(0.5);
@@ -110,37 +105,32 @@ export class BattleScene extends Phaser.Scene {
       const y = baseY + (isA ? 0 : 20);
       const element = ELEMENTS[unit.element];
 
-      // Shadow under unit
       const shadow = this.add.ellipse(x, y + 50, 70, 15, 0x000000, 0.4);
 
-      // Glow behind unit (elemental color)
       const glowCircle = this.add.circle(x, y, 55, element.color, 0.15);
 
-      // Unit image
-      const img = this.add.image(x, y, unit.key).setDisplaySize(90, 90);
+      const img = this.add.image(x, y, unit.key);
+      img.setDisplaySize(90, 90);
+      // Lưu baseScale để dùng cho animation
+      img.baseScale = img.scaleX;
       if (!isA) img.setFlipX(true);
 
-      // Element icon floating above
       const icon = this.add.text(x, y - 60, ELEMENT_ICONS[unit.element], {
         fontFamily: 'monospace', fontSize: '20px',
         color: '#' + element.glow.toString(16).padStart(6, '0')
       }).setOrigin(0.5);
 
-      // HP bar background
       const barW = 100;
-      const barBg = this.add.rectangle(x, y + 68, barW, 10, 0x1a2030)
+      this.add.rectangle(x, y + 68, barW, 10, 0x1a2030)
         .setOrigin(0.5).setStrokeStyle(1, 0x66e0c0, 0.4);
 
-      // HP bar fill
       const hpBar = this.add.rectangle(x - barW / 2, y + 68, barW, 10, 0x66e0c0)
         .setOrigin(0, 0.5);
 
-      // HP text
       const hpText = this.add.text(x, y + 84, `${unit.hp}/${unit.maxHp}`, {
         fontFamily: 'monospace', fontSize: '10px', color: '#ffffff'
       }).setOrigin(0.5);
 
-      // Store references
       const key = unit.id + side;
       this.unitSprites[key] = img;
       this.unitShadows[key] = shadow;
@@ -148,7 +138,6 @@ export class BattleScene extends Phaser.Scene {
       this.unitHpTexts[key] = hpText;
       this.unitGlows[key] = glowCircle;
       this.unitHomePositions[key] = { x, y };
-      this.unitElementIcons = this.unitElementIcons || {};
       this.unitElementIcons[key] = icon;
 
       hpBar.maxWidth = barW;
@@ -157,7 +146,6 @@ export class BattleScene extends Phaser.Scene {
   }
 
   startIdleAnimations() {
-    // Breathing effect for all units
     Object.values(this.unitSprites).forEach((sprite, idx) => {
       this.tweens.add({
         targets: sprite,
@@ -169,7 +157,6 @@ export class BattleScene extends Phaser.Scene {
       });
     });
 
-    // Glow pulse
     Object.values(this.unitGlows).forEach((glow, idx) => {
       this.tweens.add({
         targets: glow,
@@ -215,54 +202,55 @@ export class BattleScene extends Phaser.Scene {
     const targetKey = event.targetId + event.targetTeam;
     const attacker = this.unitSprites[attackerKey];
     const target = this.unitSprites[targetKey];
-    const targetGlow = this.unitGlows[targetKey];
 
     if (!attacker || !target) return;
 
     const home = this.unitHomePositions[attackerKey];
     if (!home) return;
 
-    // Get element color
     const attackerUnit = event.attackerTeam === 'A'
       ? this.teamA.find(u => u.id === event.attackerId)
       : this.teamB.find(u => u.id === event.attackerId);
 
     const element = attackerUnit ? ELEMENTS[attackerUnit.element] : ELEMENTS.METAL;
 
-    // Calculate lunge position
     const dx = target.x - home.x;
     const dy = target.y - home.y;
-    const lungeX = home.x + dx * 0.65;
-    const lungeY = home.y + dy * 0.65;
+    const lungeX = home.x + dx * 0.55;
+    const lungeY = home.y + dy * 0.55;
 
-    // 1. Anticipation - pull back slightly
+    const baseScale = attacker.baseScale || 0.0833;
+
+    // Anticipation
     this.tweens.add({
       targets: attacker,
       x: home.x - dx * 0.05,
       y: home.y - dy * 0.05,
-      scale: 1.05,
+      scaleX: baseScale * 1.05,
+      scaleY: baseScale * 1.05,
       duration: 120,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        // 2. Lunge forward
+        // Lunge
         this.tweens.add({
           targets: attacker,
           x: lungeX,
           y: lungeY,
-          scale: 1.3,
+          scaleX: baseScale * 1.2,
+          scaleY: baseScale * 1.2,
           duration: 180,
           ease: 'Power2.easeOut',
           onComplete: () => {
-            // 3. Impact effects
             this.spawnImpactParticles(target.x, target.y, element);
             this.flashElementalGlow(targetKey, element);
 
-            // 4. Return to home
+            // Return
             this.tweens.add({
               targets: attacker,
               x: home.x,
               y: home.y,
-              scale: 1,
+              scaleX: baseScale,
+              scaleY: baseScale,
               duration: 240,
               ease: 'Power2.easeIn'
             });
@@ -271,9 +259,7 @@ export class BattleScene extends Phaser.Scene {
       }
     });
 
-    // Delay impact until lunge lands
     this.time.delayedCall(300, () => {
-      // Damage number with pop effect
       const damageColor = event.damage >= 100 ? '#ffaa00'
                         : event.damage >= 50 ? '#ff6666'
                         : '#ffffff';
@@ -305,19 +291,17 @@ export class BattleScene extends Phaser.Scene {
         }
       });
 
-      // Hit shake
       this.tweens.add({
         targets: target,
-        x: target.x + (Math.random() - 0.5) * 16,
-        y: target.y + (Math.random() - 0.5) * 16,
-        angle: (Math.random() - 0.5) * 12,
+        x: target.x + (Math.random() - 0.5) * 12,
+        y: target.y + (Math.random() - 0.5) * 12,
+        angle: (Math.random() - 0.5) * 10,
         duration: 60,
         yoyo: true,
         repeat: 3,
         ease: 'Sine.easeInOut'
       });
 
-      // White flash on hit
       this.tweens.add({
         targets: target,
         alpha: 0.25,
@@ -327,14 +311,12 @@ export class BattleScene extends Phaser.Scene {
         ease: 'Quad.easeOut'
       });
 
-      // Screen shake
       if (event.damage >= 80) {
         this.cameras.main.shake(180, 0.004);
       } else {
         this.cameras.main.shake(100, 0.002);
       }
 
-      // HP bar update with smooth tween
       const hpBar = this.unitHpBars[targetKey];
       const hpText = this.unitHpTexts[targetKey];
       const unit = event.targetTeam === 'A'
@@ -350,7 +332,6 @@ export class BattleScene extends Phaser.Scene {
           ease: 'Power2.easeOut'
         });
 
-        // Change color based on HP
         if (ratio <= 0.25) hpBar.fillColor = 0xff4444;
         else if (ratio <= 0.5) hpBar.fillColor = 0xffaa44;
         else hpBar.fillColor = 0x66e0c0;
@@ -402,11 +383,10 @@ export class BattleScene extends Phaser.Scene {
     const shadow = this.unitShadows[key];
     const hpBar = this.unitHpBars[key];
     const hpText = this.unitHpTexts[key];
-    const icon = this.unitElementIcons ? this.unitElementIcons[key] : null;
+    const icon = this.unitElementIcons[key];
 
     if (!sprite) return;
 
-    // Burst particles
     const unit = event.team === 'A'
       ? this.teamA.find(u => u.id === event.unitId)
       : this.teamB.find(u => u.id === event.unitId);
@@ -414,38 +394,28 @@ export class BattleScene extends Phaser.Scene {
       this.spawnImpactParticles(sprite.x, sprite.y, ELEMENTS[unit.element]);
     }
 
-    // Death animation
+    const baseScale = sprite.baseScale || 0.0833;
+
     this.tweens.add({
       targets: sprite,
       alpha: 0,
       angle: 90,
       y: sprite.y + 40,
-      scale: 0.6,
+      scaleX: baseScale * 0.6,
+      scaleY: baseScale * 0.6,
       duration: 700,
       ease: 'Power2.easeIn'
     });
 
     if (glow) {
-      this.tweens.add({
-        targets: glow, alpha: 0, scale: 0.3,
-        duration: 500, ease: 'Power2.easeIn'
-      });
+      this.tweens.add({ targets: glow, alpha: 0, scale: 0.3, duration: 500 });
     }
     if (shadow) {
-      this.tweens.add({
-        targets: shadow, alpha: 0, scaleX: 0.3,
-        duration: 500
-      });
+      this.tweens.add({ targets: shadow, alpha: 0, scaleX: 0.3, duration: 500 });
     }
-    if (hpBar) {
-      this.tweens.add({ targets: hpBar, alpha: 0, duration: 300 });
-    }
-    if (hpText) {
-      this.tweens.add({ targets: hpText, alpha: 0, duration: 300 });
-    }
-    if (icon) {
-      this.tweens.add({ targets: icon, alpha: 0, duration: 300 });
-    }
+    if (hpBar) this.tweens.add({ targets: hpBar, alpha: 0, duration: 300 });
+    if (hpText) this.tweens.add({ targets: hpText, alpha: 0, duration: 300 });
+    if (icon) this.tweens.add({ targets: icon, alpha: 0, duration: 300 });
   }
 
   showResult() {
@@ -462,12 +432,10 @@ export class BattleScene extends Phaser.Scene {
     this.state.totalBattles += 1;
     SaveSystem.save(this.state);
 
-    // Dark overlay
     const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0)
       .setOrigin(0).setDepth(900);
     this.tweens.add({ targets: overlay, alpha: 0.75, duration: 400 });
 
-    // Popup
     const popupColor = isWin ? 0x66e0c0 : 0xff5555;
     const popupText = isWin ? '★ VICTORY ★' : 'DEFEAT';
     const rewardText = isWin
@@ -512,9 +480,8 @@ export class BattleScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5).setDepth(903).setAlpha(0);
 
-    // Fade in sequence
     this.time.delayedCall(400, () => {
-      this.tweens.add({ targets: titleText, alpha: 1, y: height / 2 - 90, duration: 300, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: titleText, alpha: 1, duration: 300, ease: 'Back.easeOut' });
     });
     this.time.delayedCall(600, () => {
       this.tweens.add({ targets: rewardLabel, alpha: 1, duration: 250 });
@@ -525,7 +492,6 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({ targets: btnText, alpha: 1, duration: 250 });
     });
 
-    // Hover
     btn.on('pointerover', () => btn.setFillStyle(popupColor, 0.2));
     btn.on('pointerout', () => btn.setFillStyle(0x1a2030, 1));
 
@@ -533,7 +499,6 @@ export class BattleScene extends Phaser.Scene {
       this.scene.start('MainScene');
     });
 
-    // Victory confetti
     if (isWin) {
       this.spawnConfetti(width, height);
     }
