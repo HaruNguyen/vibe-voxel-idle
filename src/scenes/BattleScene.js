@@ -25,6 +25,10 @@ export class BattleScene extends Phaser.Scene {
 
   init(data) {
     this.state = data.state || SaveSystem.load();
+    this.isPaused = false;
+    this.speedMultiplier = 1;
+    this.currentStep = 0;
+    this.battleFinished = false;
   }
 
   create() {
@@ -74,19 +78,105 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.startIdleAnimations();
+    this.createControlButtons(width, height);
 
     this.time.delayedCall(1000, () => this.playBattleLog());
+  }
+
+  createControlButtons(width, height) {
+    const btnY = 60;
+    const btnSize = 60;
+    const startX = width - 240;
+
+    // Pause button
+    this.pauseBtnBg = this.add.rectangle(startX, btnY, btnSize, btnSize, 0x1a2030)
+      .setStrokeStyle(2, 0x66e0c0)
+      .setInteractive({ useHandCursor: true });
+
+    this.pauseBtnText = this.add.text(startX, btnY, '❚❚', {
+      fontFamily: 'monospace', fontSize: '24px', color: '#66e0c0',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.pauseBtnBg.on('pointerdown', () => this.togglePause());
+
+    // Speed button (1x / 2x / 4x)
+    this.speedBtnBg = this.add.rectangle(startX + 80, btnY, btnSize, btnSize, 0x1a2030)
+      .setStrokeStyle(2, 0xffd966)
+      .setInteractive({ useHandCursor: true });
+
+    this.speedBtnText = this.add.text(startX + 80, btnY, '1x', {
+      fontFamily: 'monospace', fontSize: '22px', color: '#ffd966',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.speedBtnBg.on('pointerdown', () => this.cycleSpeed());
+
+    // Skip button
+    const skipBtn = this.add.rectangle(startX + 160, btnY, btnSize, btnSize, 0x1a2030)
+      .setStrokeStyle(2, 0xff5555)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(startX + 160, btnY, '▶▶', {
+      fontFamily: 'monospace', fontSize: '22px', color: '#ff5555',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    skipBtn.on('pointerdown', () => this.skipBattle());
+  }
+
+  togglePause() {
+    this.isPaused = !this.isPaused;
+    this.pauseBtnText.setText(this.isPaused ? '▶' : '❚❚');
+    this.pauseBtnText.setColor(this.isPaused ? '#ff5555' : '#66e0c0');
+    this.pauseBtnBg.setStrokeStyle(2, this.isPaused ? 0xff5555 : 0x66e0c0);
+
+    if (this.isPaused) {
+      // Show PAUSED overlay
+      const { width, height } = this.scale;
+      this.pauseOverlay = this.add.rectangle(width / 2, height / 2, 500, 160, 0x0a0e1a, 0.95)
+        .setStrokeStyle(4, 0xff5555).setDepth(2000);
+      this.pauseText = this.add.text(width / 2, height / 2, 'PAUSED', {
+        fontFamily: 'monospace', fontSize: '64px', color: '#ff5555',
+        fontStyle: 'bold', stroke: '#000000', strokeThickness: 6
+      }).setOrigin(0.5).setDepth(2001);
+
+      // Stop all tweens
+      this.tweens.pauseAll();
+    } else {
+      if (this.pauseOverlay) this.pauseOverlay.destroy();
+      if (this.pauseText) this.pauseText.destroy();
+      this.tweens.resumeAll();
+    }
+  }
+
+  cycleSpeed() {
+    if (this.speedMultiplier === 1) this.speedMultiplier = 2;
+    else if (this.speedMultiplier === 2) this.speedMultiplier = 4;
+    else this.speedMultiplier = 1;
+
+    this.speedBtnText.setText(`${this.speedMultiplier}x`);
+  }
+
+  skipBattle() {
+    if (this.battleFinished) return;
+    this.battleFinished = true;
+
+    // Kill all pending timers
+    this.time.removeAllEvents();
+    this.tweens.killAll();
+
+    // Jump to result
+    this.time.delayedCall(100, () => this.showResult());
   }
 
   // ===== ARENA BACKGROUND =====
 
   createArenaBackground(width, height) {
-    // Sky gradient
     const sky = this.add.graphics();
     sky.fillGradientStyle(0x080a14, 0x080a14, 0x1a1a3a, 0x1a1a3a, 1);
     sky.fillRect(0, 0, width, height);
 
-    // Stars in sky
     for (let i = 0; i < 80; i++) {
       const star = this.add.circle(
         Math.random() * width,
@@ -104,7 +194,6 @@ export class BattleScene extends Phaser.Scene {
       });
     }
 
-    // Far mountains silhouette
     const farMountains = this.add.graphics();
     farMountains.fillStyle(0x0f1424, 0.8);
     farMountains.beginPath();
@@ -117,7 +206,6 @@ export class BattleScene extends Phaser.Scene {
     farMountains.closePath();
     farMountains.fillPath();
 
-    // Near mountains silhouette
     const nearMountains = this.add.graphics();
     nearMountains.fillStyle(0x15192e, 1);
     nearMountains.beginPath();
@@ -130,7 +218,6 @@ export class BattleScene extends Phaser.Scene {
     nearMountains.closePath();
     nearMountains.fillPath();
 
-    // Central radial glow (arena light)
     const glow = this.add.graphics();
     for (let i = 12; i > 0; i--) {
       glow.fillStyle(0x66e0c0, 0.006 * i);
@@ -142,12 +229,10 @@ export class BattleScene extends Phaser.Scene {
     const floorY = height * 0.55;
     const floorH = height * 0.45;
 
-    // Floor base gradient
     const floor = this.add.graphics();
     floor.fillGradientStyle(0x0a0e1a, 0x0a0e1a, 0x1a2540, 0x1a2540, 1);
     floor.fillRect(0, floorY, width, floorH);
 
-    // Perspective grid - horizontal lines
     const grid = this.add.graphics();
     grid.lineStyle(2, 0x66e0c0, 0.12);
     for (let i = 0; i <= 15; i++) {
@@ -155,27 +240,21 @@ export class BattleScene extends Phaser.Scene {
       const y = floorY + Math.pow(t, 1.6) * floorH;
       grid.lineBetween(0, y, width, y);
     }
-
-    // Perspective grid - vertical converging lines
     for (let i = -15; i <= 15; i++) {
       const topX = width / 2 + i * 50;
       const bottomX = width / 2 + i * 170;
       grid.lineBetween(topX, floorY, bottomX, height);
     }
 
-    // Glowing horizon line
     const edgeGlow = this.add.graphics();
     for (let i = 0; i < 10; i++) {
       edgeGlow.lineStyle(2, 0x66e0c0, 0.25 - i * 0.025);
       edgeGlow.lineBetween(0, floorY - i, width, floorY - i);
       edgeGlow.lineBetween(0, floorY + i, width, floorY + i);
     }
-
-    // Bright center line
     edgeGlow.lineStyle(4, 0x66e0c0, 0.9);
     edgeGlow.lineBetween(0, floorY, width, floorY);
 
-    // Pulse on horizon
     const pulse = this.add.graphics();
     pulse.lineStyle(3, 0xa8fff0, 0.6);
     pulse.lineBetween(0, floorY, width, floorY);
@@ -228,13 +307,9 @@ export class BattleScene extends Phaser.Scene {
       const y = baseY + (isA ? 0 : 40);
       const element = ELEMENTS[unit.element];
 
-      // Shadow ellipse under character
       const shadow = this.add.ellipse(x, y + 95, 160, 30, 0x000000, 0.5);
-
-      // Elemental glow behind character
       const glowCircle = this.add.circle(x, y, 120, element.color, 0.12);
 
-      // Rotating aura ring
       const aura = this.add.graphics();
       aura.lineStyle(3, element.glow, 0.5);
       aura.beginPath();
@@ -244,23 +319,20 @@ export class BattleScene extends Phaser.Scene {
       aura.arc(x, y, 125, Math.PI, Math.PI * 1.65);
       aura.strokePath();
 
-      // Character sprite - BIG with per-character scale
       const charScale = unit.spriteScale || 1.0;
       const img = this.add.image(x, y, unit.key);
       img.setDisplaySize(240 * charScale, 240 * charScale);
       img.baseScale = img.scaleX;
       if (!isA) img.setFlipX(true);
 
-      // Element icon above
       const icon = this.add.text(x, y - 145, ELEMENT_ICONS[unit.element], {
         fontFamily: 'monospace', fontSize: '40px',
         color: '#' + element.glow.toString(16).padStart(6, '0'),
         stroke: '#000000', strokeThickness: 5
       }).setOrigin(0.5);
 
-      // HP bar
       const barW = 200;
-      const barBg = this.add.rectangle(x, y + 145, barW, 20, 0x000000, 0.7)
+      this.add.rectangle(x, y + 145, barW, 20, 0x000000, 0.7)
         .setOrigin(0.5).setStrokeStyle(2, 0x66e0c0, 0.7);
 
       const hpBar = this.add.rectangle(x - barW / 2, y + 145, barW, 20, 0x66e0c0)
@@ -324,30 +396,38 @@ export class BattleScene extends Phaser.Scene {
   // ===== BATTLE LOG =====
 
   playBattleLog() {
-    let index = 0;
-    const stepDelay = 550;
+    this.currentStep = 0;
+    this.playNextStep();
+  }
 
-    const nextStep = () => {
-      if (index >= this.battleLog.length) {
-        this.time.delayedCall(900, () => this.showResult());
-        return;
-      }
+  playNextStep() {
+    if (this.battleFinished) return;
 
-      const event = this.battleLog[index];
-      index++;
+    if (this.currentStep >= this.battleLog.length) {
+      this.time.delayedCall(900 / this.speedMultiplier, () => this.showResult());
+      return;
+    }
 
-      if (event.type === 'attack') {
-        this.animateAttack(event);
-        this.time.delayedCall(stepDelay, nextStep);
-      } else if (event.type === 'ko') {
-        this.animateKO(event);
-        this.time.delayedCall(stepDelay, nextStep);
-      } else {
-        nextStep();
-      }
-    };
+    if (this.isPaused) {
+      this.time.delayedCall(200, () => this.playNextStep());
+      return;
+    }
 
-    nextStep();
+    const event = this.battleLog[this.currentStep];
+    this.currentStep++;
+
+    const baseDelay = 800;
+    const stepDelay = baseDelay / this.speedMultiplier;
+
+    if (event.type === 'attack') {
+      this.animateAttack(event);
+      this.time.delayedCall(stepDelay, () => this.playNextStep());
+    } else if (event.type === 'ko') {
+      this.animateKO(event);
+      this.time.delayedCall(stepDelay, () => this.playNextStep());
+    } else {
+      this.playNextStep();
+    }
   }
 
   animateAttack(event) {
@@ -374,17 +454,17 @@ export class BattleScene extends Phaser.Scene {
 
     const baseScale = attacker.baseScale || 0.22;
 
-    // Anticipation
+    const speedFactor = 1 / this.speedMultiplier;
+
     this.tweens.add({
       targets: attacker,
       x: home.x - dx * 0.08,
       y: home.y - dy * 0.08,
       scaleX: baseScale * 1.05,
       scaleY: baseScale * 1.05,
-      duration: 120,
+      duration: 120 * speedFactor,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        // Lunge with trail
         const trail = this.add.rectangle(attacker.x, attacker.y, 200, 40, element.glow, 0.6)
           .setDepth(attacker.depth - 1);
 
@@ -394,12 +474,12 @@ export class BattleScene extends Phaser.Scene {
           y: lungeY,
           scaleX: baseScale * 1.25,
           scaleY: baseScale * 1.25,
-          duration: 200,
+          duration: 200 * speedFactor,
           ease: 'Power2.easeOut',
           onComplete: () => {
             this.spawnImpactParticles(target.x, target.y, element);
             this.flashElementalGlow(targetKey, element);
-            this.cameras.main.shake(150, 0.004);
+            if (!this.isPaused) this.cameras.main.shake(150, 0.004);
 
             this.tweens.add({
               targets: attacker,
@@ -407,7 +487,7 @@ export class BattleScene extends Phaser.Scene {
               y: home.y,
               scaleX: baseScale,
               scaleY: baseScale,
-              duration: 260,
+              duration: 260 * speedFactor,
               ease: 'Power2.easeIn'
             });
           }
@@ -416,13 +496,13 @@ export class BattleScene extends Phaser.Scene {
         this.tweens.add({
           targets: trail,
           alpha: 0,
-          duration: 350,
+          duration: 350 * speedFactor,
           onComplete: () => trail.destroy()
         });
       }
     });
 
-    this.time.delayedCall(320, () => {
+    this.time.delayedCall(320 * speedFactor, () => {
       const damageColor = event.damage >= 100 ? '#ffaa00'
                         : event.damage >= 50 ? '#ff6666'
                         : '#ffffff';
@@ -439,7 +519,7 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: dmgText,
         scale: 1.2,
-        duration: 150,
+        duration: 150 * speedFactor,
         ease: 'Back.easeOut',
         onComplete: () => {
           this.tweens.add({
@@ -447,7 +527,7 @@ export class BattleScene extends Phaser.Scene {
             y: target.y - 200,
             scale: 0.9,
             alpha: 0,
-            duration: 800,
+            duration: 800 * speedFactor,
             ease: 'Power2.easeOut',
             onComplete: () => dmgText.destroy()
           });
@@ -459,7 +539,7 @@ export class BattleScene extends Phaser.Scene {
         x: target.x + (Math.random() - 0.5) * 28,
         y: target.y + (Math.random() - 0.5) * 28,
         angle: (Math.random() - 0.5) * 12,
-        duration: 60,
+        duration: 60 * speedFactor,
         yoyo: true,
         repeat: 3,
         ease: 'Sine.easeInOut'
@@ -468,7 +548,7 @@ export class BattleScene extends Phaser.Scene {
       this.tweens.add({
         targets: target,
         alpha: 0.25,
-        duration: 80,
+        duration: 80 * speedFactor,
         yoyo: true,
         repeat: 2,
         ease: 'Quad.easeOut'
@@ -485,7 +565,7 @@ export class BattleScene extends Phaser.Scene {
         this.tweens.add({
           targets: hpBar,
           width: hpBar.maxWidth * ratio,
-          duration: 250,
+          duration: 250 * speedFactor,
           ease: 'Power2.easeOut'
         });
 
@@ -500,18 +580,16 @@ export class BattleScene extends Phaser.Scene {
   spawnImpactParticles(x, y, element) {
     const colors = PARTICLE_COLORS[element.name.toUpperCase()] || PARTICLE_COLORS.METAL;
 
-    // Central burst ring
     const ring = this.add.circle(x, y, 20, 0xffffff, 0.8).setDepth(999);
     this.tweens.add({
       targets: ring,
       scale: 6,
       alpha: 0,
-      duration: 500,
+      duration: 500 / this.speedMultiplier,
       ease: 'Power2.easeOut',
       onComplete: () => ring.destroy()
     });
 
-    // Radial particles
     for (let i = 0; i < 16; i++) {
       const angle = (Math.PI * 2 * i) / 16 + Math.random() * 0.4;
       const dist = 100 + Math.random() * 120;
@@ -525,7 +603,7 @@ export class BattleScene extends Phaser.Scene {
         y: y + Math.sin(angle) * dist,
         alpha: 0,
         scale: 0.2,
-        duration: 600 + Math.random() * 300,
+        duration: (600 + Math.random() * 300) / this.speedMultiplier,
         ease: 'Power2.easeOut',
         onComplete: () => particle.destroy()
       });
@@ -540,7 +618,7 @@ export class BattleScene extends Phaser.Scene {
     glow.fillColor = 0xffffff;
     glow.setAlpha(0.8);
 
-    this.time.delayedCall(200, () => {
+    this.time.delayedCall(200 / this.speedMultiplier, () => {
       glow.fillColor = originalColor;
     });
   }
@@ -573,19 +651,23 @@ export class BattleScene extends Phaser.Scene {
       y: sprite.y + 100,
       scaleX: baseScale * 0.5,
       scaleY: baseScale * 0.5,
-      duration: 700,
+      duration: 700 / this.speedMultiplier,
       ease: 'Power2.easeIn'
     });
 
-    if (glow) this.tweens.add({ targets: glow, alpha: 0, scale: 0.3, duration: 500 });
-    if (shadow) this.tweens.add({ targets: shadow, alpha: 0, scaleX: 0.3, duration: 500 });
-    if (hpBar) this.tweens.add({ targets: hpBar, alpha: 0, duration: 300 });
-    if (hpText) this.tweens.add({ targets: hpText, alpha: 0, duration: 300 });
-    if (icon) this.tweens.add({ targets: icon, alpha: 0, duration: 300 });
-    if (aura) this.tweens.add({ targets: aura, alpha: 0, duration: 300 });
+    if (glow) this.tweens.add({ targets: glow, alpha: 0, scale: 0.3, duration: 500 / this.speedMultiplier });
+    if (shadow) this.tweens.add({ targets: shadow, alpha: 0, scaleX: 0.3, duration: 500 / this.speedMultiplier });
+    if (hpBar) this.tweens.add({ targets: hpBar, alpha: 0, duration: 300 / this.speedMultiplier });
+    if (hpText) this.tweens.add({ targets: hpText, alpha: 0, duration: 300 / this.speedMultiplier });
+    if (icon) this.tweens.add({ targets: icon, alpha: 0, duration: 300 / this.speedMultiplier });
+    if (aura) this.tweens.add({ targets: aura, alpha: 0, duration: 300 / this.speedMultiplier });
   }
 
   showResult() {
+    if (this.battleFinished && this.resultShown) return;
+    this.battleFinished = true;
+    this.resultShown = true;
+
     const { width, height } = this.scale;
     const isWin = this.winner === 'A';
 
