@@ -27,7 +27,7 @@ export class BootScene extends Phaser.Scene {
     });
 
     CHARACTERS.forEach(char => {
-      this.load.image(char.key, `assets/characters/${char.key}.png`);
+      this.load.image(char.key, `./assets/characters/${char.key}.png`);
     });
   }
 
