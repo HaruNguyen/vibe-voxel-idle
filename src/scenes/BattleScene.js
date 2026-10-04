@@ -30,7 +30,9 @@ export class BattleScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    this.createBackground(width, height);
+    this.createParallaxBackground(width, height);
+    this.createPerspectiveFloor(width, height);
+    this.createAmbientParticles(width, height);
 
     this.teamA = this.state.team.map(id => {
       const roster = this.state.roster.find(r => r.id === id);
@@ -44,15 +46,18 @@ export class BattleScene extends Phaser.Scene {
 
     this.unitSprites = {};
     this.unitShadows = {};
+    this.unitReflections = {};
     this.unitHpBars = {};
     this.unitHpTexts = {};
     this.unitGlows = {};
+    this.unitAuras = {};
     this.unitHomePositions = {};
     this.unitElementIcons = {};
 
     this.renderTeam(this.teamA, 'A', width, height);
     this.renderTeam(this.teamB, 'B', width, height);
 
+    // VS banner
     const vs = this.add.text(width / 2, height / 2 - 20, 'VS', {
       fontFamily: 'monospace', fontSize: '64px', color: '#66e0c0', fontStyle: 'bold'
     }).setOrigin(0.5).setAlpha(0).setScale(0.3);
@@ -67,31 +72,103 @@ export class BattleScene extends Phaser.Scene {
     this.time.delayedCall(900, () => this.playBattleLog());
   }
 
-  createBackground(width, height) {
-    const g = this.add.graphics();
-    g.fillGradientStyle(0x0a0e1a, 0x0a0e1a, 0x1a1030, 0x1a1030, 1);
-    g.fillRect(0, 0, width, height);
+  // ===== 2.5D BACKGROUND =====
 
-    const glow = this.add.graphics();
-    for (let i = 6; i > 0; i--) {
-      glow.fillStyle(0x66e0c0, 0.015 * i);
-      glow.fillCircle(width / 2, height / 2, 200 + i * 30);
+  createParallaxBackground(width, height) {
+    // Sky gradient (bottom layer)
+    const sky = this.add.graphics();
+    sky.fillGradientStyle(0x0a0e1a, 0x0a0e1a, 0x1a1030, 0x1a1030, 1);
+    sky.fillRect(0, 0, width, height);
+
+    // Far background - mountains/city silhouette
+    const farBg = this.add.graphics();
+    farBg.fillStyle(0x151d30, 1);
+    for (let x = 0; x < width; x += 120) {
+      const h = 80 + Math.random() * 100;
+      farBg.fillTriangle(x, height * 0.5, x + 60, height * 0.5 - h, x + 120, height * 0.5);
     }
 
-    const grid = this.add.graphics();
-    grid.lineStyle(1, 0x66e0c0, 0.05);
-    for (let x = 0; x < width; x += 50) grid.lineBetween(x, 0, x, height);
-    for (let y = 0; y < height; y += 50) grid.lineBetween(0, y, width, y);
+    // Mid background - fog layer
+    const midBg = this.add.graphics();
+    midBg.fillStyle(0x1a2540, 0.5);
+    midBg.fillRect(0, height * 0.35, width, height * 0.3);
 
-    const stageText = this.add.text(width / 2, 30, `STAGE ${this.state.stage}`, {
-      fontFamily: 'monospace', fontSize: '20px', color: '#8899aa'
-    }).setOrigin(0.5);
-
-    this.tweens.add({
-      targets: stageText, alpha: 0.6,
-      duration: 1500, yoyo: true, repeat: -1
-    });
+    // Radial glow at center
+    const glow = this.add.graphics();
+    for (let i = 8; i > 0; i--) {
+      glow.fillStyle(0x66e0c0, 0.008 * i);
+      glow.fillCircle(width / 2, height / 2, 200 + i * 40);
+    }
   }
+
+  createPerspectiveFloor(width, height) {
+    // Main arena floor with perspective tilt
+    const floorY = height * 0.55;
+    const floorH = height * 0.45;
+
+    // Floor gradient
+    const floor = this.add.graphics();
+    floor.fillGradientStyle(0x0a0e1a, 0x0a0e1a, 0x121a2e, 0x121a2e, 1);
+    floor.fillRect(0, floorY, width, floorH);
+
+    // Perspective grid lines - horizontal
+    const grid = this.add.graphics();
+    grid.lineStyle(1, 0x66e0c0, 0.15);
+
+    // Horizontal lines - closer together toward horizon
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12;
+      const y = floorY + Math.pow(t, 1.8) * floorH;
+      grid.lineBetween(0, y, width, y);
+    }
+
+    // Vertical lines - converge to center
+    for (let i = -10; i <= 10; i++) {
+      const topX = width / 2 + i * 30;
+      const bottomX = width / 2 + i * 90;
+      grid.lineBetween(topX, floorY, bottomX, height);
+    }
+
+    // Neon edge at horizon
+    const edge = this.add.graphics();
+    edge.lineStyle(2, 0x66e0c0, 0.6);
+    edge.lineBetween(0, floorY, width, floorY);
+
+    // Glow above horizon
+    const glowLine = this.add.graphics();
+    for (let i = 0; i < 5; i++) {
+      glowLine.lineStyle(2, 0x66e0c0, 0.15 - i * 0.03);
+      glowLine.lineBetween(0, floorY - i, width, floorY - i);
+    }
+  }
+
+  createAmbientParticles(width, height) {
+    // Floating dust particles across the screen
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = 1 + Math.random() * 2;
+      const particle = this.add.circle(x, y, size, 0x66e0c0, 0.3);
+
+      this.tweens.add({
+        targets: particle,
+        x: x + (Math.random() - 0.5) * 100,
+        y: y - 50 - Math.random() * 100,
+        alpha: 0,
+        duration: 4000 + Math.random() * 4000,
+        delay: Math.random() * 3000,
+        repeat: -1,
+        ease: 'Linear',
+        onRepeat: () => {
+          particle.x = Math.random() * width;
+          particle.y = height + 10;
+          particle.alpha = 0.3;
+        }
+      });
+    }
+  }
+
+  // ===== TEAM RENDERING =====
 
   renderTeam(team, side, width, height) {
     const isA = side === 'A';
@@ -105,21 +182,42 @@ export class BattleScene extends Phaser.Scene {
       const y = baseY + (isA ? 0 : 20);
       const element = ELEMENTS[unit.element];
 
-      const shadow = this.add.ellipse(x, y + 50, 70, 15, 0x000000, 0.4);
+      // Floor reflection (blurred, flipped, below unit)
+      const reflection = this.add.image(x, y + 55, unit.key);
+      reflection.setDisplaySize(90, 90);
+      reflection.setFlipY(true);
+      reflection.setAlpha(0.2);
+      reflection.setTint(0x66e0c0);
 
+      // Shadow (elliptical)
+      const shadow = this.add.ellipse(x, y + 52, 70, 15, 0x000000, 0.5);
+
+      // Elemental glow behind unit
       const glowCircle = this.add.circle(x, y, 55, element.color, 0.15);
 
+      // Rotating aura (2 arcs)
+      const aura = this.add.graphics();
+      aura.lineStyle(2, element.glow, 0.4);
+      aura.beginPath();
+      aura.arc(x, y, 58, 0, Math.PI * 0.7);
+      aura.strokePath();
+      aura.beginPath();
+      aura.arc(x, y, 58, Math.PI, Math.PI * 1.7);
+      aura.strokePath();
+
+      // Unit image
       const img = this.add.image(x, y, unit.key);
       img.setDisplaySize(90, 90);
-      // Lưu baseScale để dùng cho animation
       img.baseScale = img.scaleX;
       if (!isA) img.setFlipX(true);
 
+      // Element icon
       const icon = this.add.text(x, y - 60, ELEMENT_ICONS[unit.element], {
         fontFamily: 'monospace', fontSize: '20px',
         color: '#' + element.glow.toString(16).padStart(6, '0')
       }).setOrigin(0.5);
 
+      // HP bar
       const barW = 100;
       this.add.rectangle(x, y + 68, barW, 10, 0x1a2030)
         .setOrigin(0.5).setStrokeStyle(1, 0x66e0c0, 0.4);
@@ -134,9 +232,12 @@ export class BattleScene extends Phaser.Scene {
       const key = unit.id + side;
       this.unitSprites[key] = img;
       this.unitShadows[key] = shadow;
+      this.unitReflections[key] = reflection;
       this.unitHpBars[key] = hpBar;
       this.unitHpTexts[key] = hpText;
       this.unitGlows[key] = glowCircle;
+      this.unitAuras = this.unitAuras || {};
+      this.unitAuras[key] = aura;
       this.unitHomePositions[key] = { x, y };
       this.unitElementIcons[key] = icon;
 
@@ -146,6 +247,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   startIdleAnimations() {
+    // Breathing
     Object.values(this.unitSprites).forEach((sprite, idx) => {
       this.tweens.add({
         targets: sprite,
@@ -157,6 +259,7 @@ export class BattleScene extends Phaser.Scene {
       });
     });
 
+    // Glow pulse
     Object.values(this.unitGlows).forEach((glow, idx) => {
       this.tweens.add({
         targets: glow,
@@ -168,7 +271,20 @@ export class BattleScene extends Phaser.Scene {
         ease: 'Sine.easeInOut'
       });
     });
+
+    // Aura rotation
+    Object.values(this.unitAuras).forEach((aura, idx) => {
+      this.tweens.add({
+        targets: aura,
+        angle: 360,
+        duration: 8000 + idx * 500,
+        repeat: -1,
+        ease: 'Linear'
+      });
+    });
   }
+
+  // ===== BATTLE LOG =====
 
   playBattleLog() {
     let index = 0;
@@ -202,6 +318,7 @@ export class BattleScene extends Phaser.Scene {
     const targetKey = event.targetId + event.targetTeam;
     const attacker = this.unitSprites[attackerKey];
     const target = this.unitSprites[targetKey];
+    const targetReflection = this.unitReflections[targetKey];
 
     if (!attacker || !target) return;
 
@@ -244,7 +361,6 @@ export class BattleScene extends Phaser.Scene {
             this.spawnImpactParticles(target.x, target.y, element);
             this.flashElementalGlow(targetKey, element);
 
-            // Return
             this.tweens.add({
               targets: attacker,
               x: home.x,
@@ -291,11 +407,13 @@ export class BattleScene extends Phaser.Scene {
         }
       });
 
+      // Shake target + reflection
+      const targets = [target];
+      if (targetReflection) targets.push(targetReflection);
+
       this.tweens.add({
-        targets: target,
+        targets: targets,
         x: target.x + (Math.random() - 0.5) * 12,
-        y: target.y + (Math.random() - 0.5) * 12,
-        angle: (Math.random() - 0.5) * 10,
         duration: 60,
         yoyo: true,
         repeat: 3,
@@ -381,9 +499,11 @@ export class BattleScene extends Phaser.Scene {
     const sprite = this.unitSprites[key];
     const glow = this.unitGlows[key];
     const shadow = this.unitShadows[key];
+    const reflection = this.unitReflections[key];
     const hpBar = this.unitHpBars[key];
     const hpText = this.unitHpTexts[key];
     const icon = this.unitElementIcons[key];
+    const aura = this.unitAuras ? this.unitAuras[key] : null;
 
     if (!sprite) return;
 
@@ -407,15 +527,13 @@ export class BattleScene extends Phaser.Scene {
       ease: 'Power2.easeIn'
     });
 
-    if (glow) {
-      this.tweens.add({ targets: glow, alpha: 0, scale: 0.3, duration: 500 });
-    }
-    if (shadow) {
-      this.tweens.add({ targets: shadow, alpha: 0, scaleX: 0.3, duration: 500 });
-    }
+    if (glow) this.tweens.add({ targets: glow, alpha: 0, scale: 0.3, duration: 500 });
+    if (shadow) this.tweens.add({ targets: shadow, alpha: 0, scaleX: 0.3, duration: 500 });
+    if (reflection) this.tweens.add({ targets: reflection, alpha: 0, duration: 500 });
     if (hpBar) this.tweens.add({ targets: hpBar, alpha: 0, duration: 300 });
     if (hpText) this.tweens.add({ targets: hpText, alpha: 0, duration: 300 });
     if (icon) this.tweens.add({ targets: icon, alpha: 0, duration: 300 });
+    if (aura) this.tweens.add({ targets: aura, alpha: 0, duration: 300 });
   }
 
   showResult() {
@@ -454,8 +572,7 @@ export class BattleScene extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '38px',
       color: '#' + popupColor.toString(16).padStart(6, '0'),
       fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 4
+      stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5).setDepth(902).setAlpha(0);
 
     const rewardLabel = this.add.text(width / 2, height / 2 - 25, rewardText, {
@@ -494,14 +611,9 @@ export class BattleScene extends Phaser.Scene {
 
     btn.on('pointerover', () => btn.setFillStyle(popupColor, 0.2));
     btn.on('pointerout', () => btn.setFillStyle(0x1a2030, 1));
+    btn.on('pointerdown', () => this.scene.start('MainScene'));
 
-    btn.on('pointerdown', () => {
-      this.scene.start('MainScene');
-    });
-
-    if (isWin) {
-      this.spawnConfetti(width, height);
-    }
+    if (isWin) this.spawnConfetti(width, height);
   }
 
   spawnConfetti(width, height) {
