@@ -29,6 +29,7 @@ export class BattleScene extends Phaser.Scene {
     this.speedMultiplier = 1;
     this.currentStep = 0;
     this.battleFinished = false;
+    this.resultShown = false;
   }
 
   create() {
@@ -60,13 +61,11 @@ export class BattleScene extends Phaser.Scene {
     this.renderTeam(this.teamA, 'A', width, height);
     this.renderTeam(this.teamB, 'B', width, height);
 
-    // Stage banner
     this.add.text(width / 2, 60, `STAGE ${this.state.stage}`, {
       fontFamily: 'monospace', fontSize: '36px', color: '#8899aa',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5);
 
-    // VS banner animated
     const vs = this.add.text(width / 2, height / 2 - 80, 'VS', {
       fontFamily: 'monospace', fontSize: '140px', color: '#66e0c0', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 10
@@ -88,7 +87,6 @@ export class BattleScene extends Phaser.Scene {
     const btnSize = 60;
     const startX = width - 240;
 
-    // Pause button
     this.pauseBtnBg = this.add.rectangle(startX, btnY, btnSize, btnSize, 0x1a2030)
       .setStrokeStyle(2, 0x66e0c0)
       .setInteractive({ useHandCursor: true });
@@ -100,7 +98,6 @@ export class BattleScene extends Phaser.Scene {
 
     this.pauseBtnBg.on('pointerdown', () => this.togglePause());
 
-    // Speed button (1x / 2x / 4x)
     this.speedBtnBg = this.add.rectangle(startX + 80, btnY, btnSize, btnSize, 0x1a2030)
       .setStrokeStyle(2, 0xffd966)
       .setInteractive({ useHandCursor: true });
@@ -112,7 +109,6 @@ export class BattleScene extends Phaser.Scene {
 
     this.speedBtnBg.on('pointerdown', () => this.cycleSpeed());
 
-    // Skip button
     const skipBtn = this.add.rectangle(startX + 160, btnY, btnSize, btnSize, 0x1a2030)
       .setStrokeStyle(2, 0xff5555)
       .setInteractive({ useHandCursor: true });
@@ -132,7 +128,6 @@ export class BattleScene extends Phaser.Scene {
     this.pauseBtnBg.setStrokeStyle(2, this.isPaused ? 0xff5555 : 0x66e0c0);
 
     if (this.isPaused) {
-      // Show PAUSED overlay
       const { width, height } = this.scale;
       this.pauseOverlay = this.add.rectangle(width / 2, height / 2, 500, 160, 0x0a0e1a, 0.95)
         .setStrokeStyle(4, 0xff5555).setDepth(2000);
@@ -140,8 +135,6 @@ export class BattleScene extends Phaser.Scene {
         fontFamily: 'monospace', fontSize: '64px', color: '#ff5555',
         fontStyle: 'bold', stroke: '#000000', strokeThickness: 6
       }).setOrigin(0.5).setDepth(2001);
-
-      // Stop all tweens
       this.tweens.pauseAll();
     } else {
       if (this.pauseOverlay) this.pauseOverlay.destroy();
@@ -161,16 +154,10 @@ export class BattleScene extends Phaser.Scene {
   skipBattle() {
     if (this.battleFinished) return;
     this.battleFinished = true;
-
-    // Kill all pending timers
     this.time.removeAllEvents();
     this.tweens.killAll();
-
-    // Jump to result
     this.time.delayedCall(100, () => this.showResult());
   }
-
-  // ===== ARENA BACKGROUND =====
 
   createArenaBackground(width, height) {
     const sky = this.add.graphics();
@@ -186,11 +173,9 @@ export class BattleScene extends Phaser.Scene {
         0.3 + Math.random() * 0.5
       );
       this.tweens.add({
-        targets: star,
-        alpha: 0.1,
+        targets: star, alpha: 0.1,
         duration: 1500 + Math.random() * 2000,
-        yoyo: true,
-        repeat: -1
+        yoyo: true, repeat: -1
       });
     }
 
@@ -259,11 +244,8 @@ export class BattleScene extends Phaser.Scene {
     pulse.lineStyle(3, 0xa8fff0, 0.6);
     pulse.lineBetween(0, floorY, width, floorY);
     this.tweens.add({
-      targets: pulse,
-      alpha: 0.2,
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
+      targets: pulse, alpha: 0.2,
+      duration: 2000, yoyo: true, repeat: -1,
       ease: 'Sine.easeInOut'
     });
   }
@@ -293,54 +275,83 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  // ===== TEAM RENDERING =====
+  // ===== TEAM RENDERING WITH DYNAMIC SPACING =====
 
   renderTeam(team, side, width, height) {
     const isA = side === 'A';
     const baseY = height / 2 + 140;
-    const spacing = 260;
-    const centerX = isA ? width / 2 - 520 : width / 2 + 520;
-    const startX = centerX - (team.length - 1) * spacing / 2;
+
+    // Dynamic sizing based on team size
+    const teamSize = team.length;
+    const availableWidth = width / 2 - 120;
+    const spacing = Math.min(280, availableWidth / teamSize);
+    const spriteSize = Math.min(240, spacing * 0.85);
+
+    const centerX = isA ? width / 2 - 500 : width / 2 + 500;
+    const startX = centerX - (teamSize - 1) * spacing / 2;
 
     team.forEach((unit, i) => {
       const x = startX + i * spacing;
       const y = baseY + (isA ? 0 : 40);
       const element = ELEMENTS[unit.element];
 
-      const shadow = this.add.ellipse(x, y + 95, 160, 30, 0x000000, 0.5);
-      const glowCircle = this.add.circle(x, y, 120, element.color, 0.12);
+      // Shadow ellipse
+      const shadow = this.add.ellipse(
+        x,
+        y + spriteSize * 0.4,
+        spriteSize * 0.65,
+        spriteSize * 0.12,
+        0x000000,
+        0.5
+      );
 
+      // Elemental glow
+      const glowCircle = this.add.circle(x, y, spriteSize * 0.5, element.color, 0.12);
+
+      // Rotating aura
       const aura = this.add.graphics();
       aura.lineStyle(3, element.glow, 0.5);
       aura.beginPath();
-      aura.arc(x, y, 125, 0, Math.PI * 0.65);
+      aura.arc(x, y, spriteSize * 0.52, 0, Math.PI * 0.65);
       aura.strokePath();
       aura.beginPath();
-      aura.arc(x, y, 125, Math.PI, Math.PI * 1.65);
+      aura.arc(x, y, spriteSize * 0.52, Math.PI, Math.PI * 1.65);
       aura.strokePath();
 
+      // Character sprite
       const charScale = unit.spriteScale || 1.0;
       const img = this.add.image(x, y, unit.key);
-      img.setDisplaySize(240 * charScale, 240 * charScale);
+      img.setDisplaySize(spriteSize * charScale, spriteSize * charScale);
       img.baseScale = img.scaleX;
       if (!isA) img.setFlipX(true);
 
-      const icon = this.add.text(x, y - 145, ELEMENT_ICONS[unit.element], {
-        fontFamily: 'monospace', fontSize: '40px',
+      // Element icon
+      const iconSize = Math.max(24, spriteSize * 0.15);
+      const icon = this.add.text(x, y - spriteSize * 0.6, ELEMENT_ICONS[unit.element], {
+        fontFamily: 'monospace',
+        fontSize: `${iconSize}px`,
         color: '#' + element.glow.toString(16).padStart(6, '0'),
         stroke: '#000000', strokeThickness: 5
       }).setOrigin(0.5);
 
-      const barW = 200;
-      this.add.rectangle(x, y + 145, barW, 20, 0x000000, 0.7)
+      // HP bar
+      const barW = spriteSize * 0.85;
+      const barH = Math.max(12, spriteSize * 0.07);
+      const barY = y + spriteSize * 0.6;
+
+      this.add.rectangle(x, barY, barW, barH, 0x000000, 0.7)
         .setOrigin(0.5).setStrokeStyle(2, 0x66e0c0, 0.7);
 
-      const hpBar = this.add.rectangle(x - barW / 2, y + 145, barW, 20, 0x66e0c0)
+      const hpBar = this.add.rectangle(x - barW / 2, barY, barW, barH, 0x66e0c0)
         .setOrigin(0, 0.5);
 
-      const hpText = this.add.text(x, y + 180, `${unit.hp}/${unit.maxHp}`, {
-        fontFamily: 'monospace', fontSize: '18px', color: '#ffffff',
-        fontStyle: 'bold', stroke: '#000000', strokeThickness: 4
+      const hpTextSize = Math.max(13, spriteSize * 0.075);
+      const hpText = this.add.text(x, barY + barH + 10, `${unit.hp}/${unit.maxHp}`, {
+        fontFamily: 'monospace',
+        fontSize: `${hpTextSize}px`,
+        color: '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 4
       }).setOrigin(0.5);
 
       const key = unit.id + side;
@@ -364,8 +375,7 @@ export class BattleScene extends Phaser.Scene {
         targets: sprite,
         y: sprite.y - 8,
         duration: 1400 + idx * 100,
-        yoyo: true,
-        repeat: -1,
+        yoyo: true, repeat: -1,
         ease: 'Sine.easeInOut'
       });
     });
@@ -373,11 +383,9 @@ export class BattleScene extends Phaser.Scene {
     Object.values(this.unitGlows).forEach((glow, idx) => {
       this.tweens.add({
         targets: glow,
-        alpha: 0.3,
-        scale: 1.2,
+        alpha: 0.3, scale: 1.2,
         duration: 1600 + idx * 80,
-        yoyo: true,
-        repeat: -1,
+        yoyo: true, repeat: -1,
         ease: 'Sine.easeInOut'
       });
     });
@@ -392,8 +400,6 @@ export class BattleScene extends Phaser.Scene {
       });
     });
   }
-
-  // ===== BATTLE LOG =====
 
   playBattleLog() {
     this.currentStep = 0;
@@ -453,7 +459,6 @@ export class BattleScene extends Phaser.Scene {
     const lungeY = home.y + dy * 0.5;
 
     const baseScale = attacker.baseScale || 0.22;
-
     const speedFactor = 1 / this.speedMultiplier;
 
     this.tweens.add({
@@ -470,8 +475,7 @@ export class BattleScene extends Phaser.Scene {
 
         this.tweens.add({
           targets: attacker,
-          x: lungeX,
-          y: lungeY,
+          x: lungeX, y: lungeY,
           scaleX: baseScale * 1.25,
           scaleY: baseScale * 1.25,
           duration: 200 * speedFactor,
@@ -483,10 +487,8 @@ export class BattleScene extends Phaser.Scene {
 
             this.tweens.add({
               targets: attacker,
-              x: home.x,
-              y: home.y,
-              scaleX: baseScale,
-              scaleY: baseScale,
+              x: home.x, y: home.y,
+              scaleX: baseScale, scaleY: baseScale,
               duration: 260 * speedFactor,
               ease: 'Power2.easeIn'
             });
@@ -494,8 +496,7 @@ export class BattleScene extends Phaser.Scene {
         });
 
         this.tweens.add({
-          targets: trail,
-          alpha: 0,
+          targets: trail, alpha: 0,
           duration: 350 * speedFactor,
           onComplete: () => trail.destroy()
         });
@@ -512,21 +513,18 @@ export class BattleScene extends Phaser.Scene {
         fontSize: event.damage >= 100 ? '60px' : '44px',
         color: damageColor,
         fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 8
+        stroke: '#000000', strokeThickness: 8
       }).setOrigin(0.5).setScale(0.3).setDepth(1000);
 
       this.tweens.add({
-        targets: dmgText,
-        scale: 1.2,
+        targets: dmgText, scale: 1.2,
         duration: 150 * speedFactor,
         ease: 'Back.easeOut',
         onComplete: () => {
           this.tweens.add({
             targets: dmgText,
             y: target.y - 200,
-            scale: 0.9,
-            alpha: 0,
+            scale: 0.9, alpha: 0,
             duration: 800 * speedFactor,
             ease: 'Power2.easeOut',
             onComplete: () => dmgText.destroy()
@@ -540,8 +538,7 @@ export class BattleScene extends Phaser.Scene {
         y: target.y + (Math.random() - 0.5) * 28,
         angle: (Math.random() - 0.5) * 12,
         duration: 60 * speedFactor,
-        yoyo: true,
-        repeat: 3,
+        yoyo: true, repeat: 3,
         ease: 'Sine.easeInOut'
       });
 
@@ -549,8 +546,7 @@ export class BattleScene extends Phaser.Scene {
         targets: target,
         alpha: 0.25,
         duration: 80 * speedFactor,
-        yoyo: true,
-        repeat: 2,
+        yoyo: true, repeat: 2,
         ease: 'Quad.easeOut'
       });
 
@@ -582,9 +578,7 @@ export class BattleScene extends Phaser.Scene {
 
     const ring = this.add.circle(x, y, 20, 0xffffff, 0.8).setDepth(999);
     this.tweens.add({
-      targets: ring,
-      scale: 6,
-      alpha: 0,
+      targets: ring, scale: 6, alpha: 0,
       duration: 500 / this.speedMultiplier,
       ease: 'Power2.easeOut',
       onComplete: () => ring.destroy()
@@ -601,8 +595,7 @@ export class BattleScene extends Phaser.Scene {
         targets: particle,
         x: x + Math.cos(angle) * dist,
         y: y + Math.sin(angle) * dist,
-        alpha: 0,
-        scale: 0.2,
+        alpha: 0, scale: 0.2,
         duration: (600 + Math.random() * 300) / this.speedMultiplier,
         ease: 'Power2.easeOut',
         onComplete: () => particle.destroy()
@@ -646,8 +639,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: sprite,
-      alpha: 0,
-      angle: 90,
+      alpha: 0, angle: 90,
       y: sprite.y + 100,
       scaleX: baseScale * 0.5,
       scaleY: baseScale * 0.5,
@@ -664,9 +656,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   showResult() {
-    if (this.battleFinished && this.resultShown) return;
-    this.battleFinished = true;
+    if (this.resultShown) return;
     this.resultShown = true;
+    this.battleFinished = true;
 
     const { width, height } = this.scale;
     const isWin = this.winner === 'A';
