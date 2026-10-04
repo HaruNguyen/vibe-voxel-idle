@@ -28,14 +28,12 @@ export class UpgradeScene extends Phaser.Scene {
     g.fillGradientStyle(0x080a14, 0x080a14, 0x1a1a3a, 0x1a1a3a, 1);
     g.fillRect(0, 0, width, height);
 
-    // Radial glow
     const glow = this.add.graphics();
     for (let i = 8; i > 0; i--) {
       glow.fillStyle(0x66e0c0, 0.006 * i);
       glow.fillCircle(width / 2, height / 2, 400 + i * 100);
     }
 
-    // Grid
     const grid = this.add.graphics();
     grid.lineStyle(1, 0x66e0c0, 0.05);
     for (let x = 0; x < width; x += 80) grid.lineBetween(x, 0, x, height);
@@ -44,13 +42,15 @@ export class UpgradeScene extends Phaser.Scene {
 
   createHeader(width) {
     this.add.text(width / 2, 60, 'UPGRADE', {
-      fontFamily: 'monospace', fontSize: '64px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '64px',
       color: '#66e0c0', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 8
     }).setOrigin(0.5).setShadow(0, 0, '#66e0c0', 25, true, true);
 
     this.goldText = this.add.text(width - 50, 60, `◆ ${this.state.gold}`, {
-      fontFamily: 'monospace', fontSize: '44px', color: '#ffd966',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '44px', color: '#ffd966',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 5
     }).setOrigin(1, 0.5);
   }
@@ -72,7 +72,7 @@ export class UpgradeScene extends Phaser.Scene {
       const isSelected = entry.id === this.selectedCharId;
       const element = ELEMENTS[char.element];
 
-      const glowBg = this.add.rectangle(x, y, cardW + 6, cardH + 6,
+      this.add.rectangle(x, y, cardW + 6, cardH + 6,
         element.glow, isSelected ? 0.3 : 0);
 
       const bg = this.add.rectangle(x, y, cardW, cardH,
@@ -86,13 +86,6 @@ export class UpgradeScene extends Phaser.Scene {
         this.selectedCharId = entry.id;
         this.scene.restart({ state: this.state, charId: entry.id });
       });
-
-      bg.on('pointerover', () => {
-        if (!isSelected) bg.setStrokeStyle(3, element.glow, 0.8);
-      });
-      bg.on('pointerout', () => {
-        if (!isSelected) bg.setStrokeStyle(2, 0x333333);
-      });
     });
   }
 
@@ -104,35 +97,35 @@ export class UpgradeScene extends Phaser.Scene {
     const element = ELEMENTS[char.element];
     const panelY = 400;
 
-    // Character sprite big
-    const charScale = char.spriteScale || 1.0;
-    this.add.image(width / 2, panelY, char.key).setDisplaySize(240 * charScale, 240 * charScale);
-
-    // Element glow behind
     const glow = this.add.graphics();
     for (let i = 5; i > 0; i--) {
       glow.fillStyle(element.glow, 0.05 * i);
       glow.fillCircle(width / 2, panelY, 100 + i * 30);
     }
 
+    const charScale = char.spriteScale || 1.0;
+    this.add.image(width / 2, panelY, char.key).setDisplaySize(240 * charScale, 240 * charScale);
+
     this.add.text(width / 2, panelY + 170, char.name, {
-      fontFamily: 'monospace', fontSize: '40px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '40px',
       color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 5
     }).setOrigin(0.5);
 
     this.add.text(width / 2, panelY + 215, `${element.name} · ${char.role}`, {
-      fontFamily: 'monospace', fontSize: '22px',
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '24px',
       color: '#' + element.glow.toString(16).padStart(6, '0'),
-      fontStyle: 'bold'
+      fontStyle: '600', letterSpacing: 3
     }).setOrigin(0.5);
 
     this.add.text(width / 2, panelY + 250, `Lv.${entry.level}  ★${entry.stars}`, {
-      fontFamily: 'monospace', fontSize: '26px', color: '#ffd966',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '26px', color: '#ffd966',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0.5);
 
-    // Upgrade rows
     const startY = panelY + 330;
     const rowH = 100;
     const types = ['HP', 'ATK', 'DEF', 'SPD'];
@@ -151,24 +144,21 @@ export class UpgradeScene extends Phaser.Scene {
     const rowW = 1000;
     const rowX = width / 2 - rowW / 2;
 
-    // Row background
     this.add.rectangle(width / 2, y, rowW, 90, 0x0a0e1a)
       .setStrokeStyle(2, config.color, canAfford ? 0.6 : 0.2);
 
-    // Icon
     this.add.text(rowX + 30, y, config.icon, {
       fontSize: '38px'
     }).setOrigin(0, 0.5);
 
-    // Name
     this.add.text(rowX + 90, y, config.name, {
-      fontFamily: 'monospace', fontSize: '30px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '26px',
       color: '#' + config.color.toString(16).padStart(6, '0'),
       fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5);
 
-    // Current value
     const baseStat = char[type.toLowerCase()];
     const currentMult = UpgradeSystem.getStatMultiplier(type, currentLevel);
     const currentValue = Math.floor(baseStat * currentMult);
@@ -176,21 +166,23 @@ export class UpgradeScene extends Phaser.Scene {
     const nextValue = Math.floor(baseStat * nextMult);
 
     this.add.text(rowX + 230, y, `Lv.${currentLevel}`, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#8899aa'
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '20px', color: '#8899aa'
     }).setOrigin(0, 0.5);
 
     this.add.text(rowX + 350, y, `${currentValue}`, {
-      fontFamily: 'monospace', fontSize: '32px', color: '#ffffff',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '30px', color: '#ffffff',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0, 0.5);
 
     this.add.text(rowX + 470, y, `→ ${nextValue}`, {
-      fontFamily: 'monospace', fontSize: '26px',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '24px',
       color: '#' + config.color.toString(16).padStart(6, '0'),
       fontStyle: 'bold'
     }).setOrigin(0, 0.5);
 
-    // Upgrade button
     const btnX = rowX + rowW - 130;
     const btn = this.add.rectangle(btnX, y, 220, 66,
       canAfford ? 0x1a2030 : 0x0a0e1a)
@@ -198,7 +190,8 @@ export class UpgradeScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: canAfford });
 
     this.add.text(btnX, y, `◆ ${cost}`, {
-      fontFamily: 'monospace', fontSize: '26px',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '24px',
       color: canAfford ? '#ffd966' : '#555555',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 3
     }).setOrigin(0.5);
@@ -225,8 +218,9 @@ export class UpgradeScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.add.text(160, height - 80, '← BACK', {
-      fontFamily: 'monospace', fontSize: '26px', color: '#8899aa',
-      fontStyle: 'bold', letterSpacing: 3
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '24px', color: '#8899aa',
+      fontStyle: '600', letterSpacing: 3
     }).setOrigin(0.5);
 
     btn.on('pointerover', () => btn.setFillStyle(0x8899aa, 0.2));
@@ -240,11 +234,12 @@ export class UpgradeScene extends Phaser.Scene {
   showToast(message, color) {
     const { width } = this.scale;
     const toast = this.add.text(width / 2, 950, message, {
-      fontFamily: 'monospace', fontSize: '38px',
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '36px',
       color: '#' + color.toString(16).padStart(6, '0'),
       backgroundColor: '#121a2e',
       padding: { x: 40, y: 24 },
-      fontStyle: 'bold',
+      fontStyle: '600',
       stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5).setDepth(1000);
 
