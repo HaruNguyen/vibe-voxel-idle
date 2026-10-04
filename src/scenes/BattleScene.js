@@ -62,12 +62,14 @@ export class BattleScene extends Phaser.Scene {
     this.renderTeam(this.teamB, 'B', width, height);
 
     this.add.text(width / 2, 60, `STAGE ${this.state.stage}`, {
-      fontFamily: 'monospace', fontSize: '36px', color: '#8899aa',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '36px', color: '#8899aa',
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 4
     }).setOrigin(0.5);
 
     const vs = this.add.text(width / 2, height / 2 - 80, 'VS', {
-      fontFamily: 'monospace', fontSize: '140px', color: '#66e0c0', fontStyle: 'bold',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '140px', color: '#66e0c0', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 10
     }).setOrigin(0.5).setAlpha(0).setScale(0.3);
 
@@ -92,8 +94,8 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.pauseBtnText = this.add.text(startX, btnY, '❚❚', {
-      fontFamily: 'monospace', fontSize: '24px', color: '#66e0c0',
-      fontStyle: 'bold'
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '24px', color: '#66e0c0', fontStyle: 'bold'
     }).setOrigin(0.5);
 
     this.pauseBtnBg.on('pointerdown', () => this.togglePause());
@@ -103,8 +105,8 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.speedBtnText = this.add.text(startX + 80, btnY, '1x', {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffd966',
-      fontStyle: 'bold'
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '20px', color: '#ffd966', fontStyle: 'bold'
     }).setOrigin(0.5);
 
     this.speedBtnBg.on('pointerdown', () => this.cycleSpeed());
@@ -114,8 +116,8 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.add.text(startX + 160, btnY, '▶▶', {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ff5555',
-      fontStyle: 'bold'
+      fontFamily: 'Rajdhani, monospace',
+      fontSize: '22px', color: '#ff5555', fontStyle: 'bold'
     }).setOrigin(0.5);
 
     skipBtn.on('pointerdown', () => this.skipBattle());
@@ -132,7 +134,8 @@ export class BattleScene extends Phaser.Scene {
       this.pauseOverlay = this.add.rectangle(width / 2, height / 2, 500, 160, 0x0a0e1a, 0.95)
         .setStrokeStyle(4, 0xff5555).setDepth(2000);
       this.pauseText = this.add.text(width / 2, height / 2, 'PAUSED', {
-        fontFamily: 'monospace', fontSize: '64px', color: '#ff5555',
+        fontFamily: 'Orbitron, monospace',
+        fontSize: '64px', color: '#ff5555',
         fontStyle: 'bold', stroke: '#000000', strokeThickness: 6
       }).setOrigin(0.5).setDepth(2001);
       this.tweens.pauseAll();
@@ -147,7 +150,6 @@ export class BattleScene extends Phaser.Scene {
     if (this.speedMultiplier === 1) this.speedMultiplier = 2;
     else if (this.speedMultiplier === 2) this.speedMultiplier = 4;
     else this.speedMultiplier = 1;
-
     this.speedBtnText.setText(`${this.speedMultiplier}x`);
   }
 
@@ -164,21 +166,49 @@ export class BattleScene extends Phaser.Scene {
     sky.fillGradientStyle(0x080a14, 0x080a14, 0x1a1a3a, 0x1a1a3a, 1);
     sky.fillRect(0, 0, width, height);
 
-    for (let i = 0; i < 80; i++) {
+    // Aurora glow
+    const aurora = this.add.graphics();
+    for (let i = 15; i > 0; i--) {
+      aurora.fillStyle(0x66e0c0, 0.004 * i);
+      aurora.fillCircle(width * 0.3, height * 0.2, 200 + i * 40);
+    }
+    for (let i = 15; i > 0; i--) {
+      aurora.fillStyle(0xb090ff, 0.004 * i);
+      aurora.fillCircle(width * 0.7, height * 0.15, 180 + i * 40);
+    }
+
+    // Stars
+    for (let i = 0; i < 100; i++) {
       const star = this.add.circle(
         Math.random() * width,
-        Math.random() * height * 0.4,
-        1.5 + Math.random() * 2,
+        Math.random() * height * 0.5,
+        1 + Math.random() * 2.5,
         0xffffff,
         0.3 + Math.random() * 0.5
       );
       this.tweens.add({
         targets: star, alpha: 0.1,
-        duration: 1500 + Math.random() * 2000,
+        duration: 1500 + Math.random() * 2500,
         yoyo: true, repeat: -1
       });
     }
 
+    // Clouds
+    for (let i = 0; i < 8; i++) {
+      const cloudX = Math.random() * width;
+      const cloudY = height * 0.15 + Math.random() * height * 0.25;
+      const cloudW = 200 + Math.random() * 300;
+      const cloud = this.add.ellipse(cloudX, cloudY, cloudW, cloudW * 0.3, 0x1a2540, 0.3);
+      this.tweens.add({
+        targets: cloud,
+        x: cloudX + width + 400,
+        duration: 60000 + Math.random() * 40000,
+        repeat: -1,
+        onRepeat: () => { cloud.x = -400; }
+      });
+    }
+
+    // Far mountains
     const farMountains = this.add.graphics();
     farMountains.fillStyle(0x0f1424, 0.8);
     farMountains.beginPath();
@@ -191,6 +221,7 @@ export class BattleScene extends Phaser.Scene {
     farMountains.closePath();
     farMountains.fillPath();
 
+    // Near mountains
     const nearMountains = this.add.graphics();
     nearMountains.fillStyle(0x15192e, 1);
     nearMountains.beginPath();
@@ -203,6 +234,12 @@ export class BattleScene extends Phaser.Scene {
     nearMountains.closePath();
     nearMountains.fillPath();
 
+    // Fog layer at mountain base
+    const fog = this.add.graphics();
+    fog.fillStyle(0x1a2540, 0.4);
+    fog.fillRect(0, height * 0.5, width, height * 0.08);
+
+    // Central arena glow
     const glow = this.add.graphics();
     for (let i = 12; i > 0; i--) {
       glow.fillStyle(0x66e0c0, 0.006 * i);
@@ -256,7 +293,6 @@ export class BattleScene extends Phaser.Scene {
       const y = Math.random() * height;
       const size = 2 + Math.random() * 3;
       const particle = this.add.circle(x, y, size, 0x66e0c0, 0.4);
-
       this.tweens.add({
         targets: particle,
         x: x + (Math.random() - 0.5) * 150,
@@ -275,18 +311,13 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  // ===== TEAM RENDERING WITH DYNAMIC SPACING =====
-
   renderTeam(team, side, width, height) {
     const isA = side === 'A';
     const baseY = height / 2 + 140;
-
-    // Dynamic sizing based on team size
     const teamSize = team.length;
     const availableWidth = width / 2 - 120;
     const spacing = Math.min(280, availableWidth / teamSize);
     const spriteSize = Math.min(240, spacing * 0.85);
-
     const centerX = isA ? width / 2 - 500 : width / 2 + 500;
     const startX = centerX - (teamSize - 1) * spacing / 2;
 
@@ -295,20 +326,9 @@ export class BattleScene extends Phaser.Scene {
       const y = baseY + (isA ? 0 : 40);
       const element = ELEMENTS[unit.element];
 
-      // Shadow ellipse
-      const shadow = this.add.ellipse(
-        x,
-        y + spriteSize * 0.4,
-        spriteSize * 0.65,
-        spriteSize * 0.12,
-        0x000000,
-        0.5
-      );
-
-      // Elemental glow
+      const shadow = this.add.ellipse(x, y + spriteSize * 0.4, spriteSize * 0.65, spriteSize * 0.12, 0x000000, 0.5);
       const glowCircle = this.add.circle(x, y, spriteSize * 0.5, element.color, 0.12);
 
-      // Rotating aura
       const aura = this.add.graphics();
       aura.lineStyle(3, element.glow, 0.5);
       aura.beginPath();
@@ -318,23 +338,20 @@ export class BattleScene extends Phaser.Scene {
       aura.arc(x, y, spriteSize * 0.52, Math.PI, Math.PI * 1.65);
       aura.strokePath();
 
-      // Character sprite
       const charScale = unit.spriteScale || 1.0;
       const img = this.add.image(x, y, unit.key);
       img.setDisplaySize(spriteSize * charScale, spriteSize * charScale);
       img.baseScale = img.scaleX;
       if (!isA) img.setFlipX(true);
 
-      // Element icon
       const iconSize = Math.max(24, spriteSize * 0.15);
       const icon = this.add.text(x, y - spriteSize * 0.6, ELEMENT_ICONS[unit.element], {
-        fontFamily: 'monospace',
+        fontFamily: 'Rajdhani, monospace',
         fontSize: `${iconSize}px`,
         color: '#' + element.glow.toString(16).padStart(6, '0'),
         stroke: '#000000', strokeThickness: 5
       }).setOrigin(0.5);
 
-      // HP bar
       const barW = spriteSize * 0.85;
       const barH = Math.max(12, spriteSize * 0.07);
       const barY = y + spriteSize * 0.6;
@@ -342,12 +359,11 @@ export class BattleScene extends Phaser.Scene {
       this.add.rectangle(x, barY, barW, barH, 0x000000, 0.7)
         .setOrigin(0.5).setStrokeStyle(2, 0x66e0c0, 0.7);
 
-      const hpBar = this.add.rectangle(x - barW / 2, barY, barW, barH, 0x66e0c0)
-        .setOrigin(0, 0.5);
+      const hpBar = this.add.rectangle(x - barW / 2, barY, barW, barH, 0x66e0c0).setOrigin(0, 0.5);
 
       const hpTextSize = Math.max(13, spriteSize * 0.075);
       const hpText = this.add.text(x, barY + barH + 10, `${unit.hp}/${unit.maxHp}`, {
-        fontFamily: 'monospace',
+        fontFamily: 'JetBrains Mono, monospace',
         fontSize: `${hpTextSize}px`,
         color: '#ffffff',
         fontStyle: 'bold',
@@ -392,11 +408,9 @@ export class BattleScene extends Phaser.Scene {
 
     Object.values(this.unitAuras).forEach((aura, idx) => {
       this.tweens.add({
-        targets: aura,
-        angle: 360,
+        targets: aura, angle: 360,
         duration: 10000 + idx * 500,
-        repeat: -1,
-        ease: 'Linear'
+        repeat: -1, ease: 'Linear'
       });
     });
   }
@@ -408,12 +422,10 @@ export class BattleScene extends Phaser.Scene {
 
   playNextStep() {
     if (this.battleFinished) return;
-
     if (this.currentStep >= this.battleLog.length) {
       this.time.delayedCall(900 / this.speedMultiplier, () => this.showResult());
       return;
     }
-
     if (this.isPaused) {
       this.time.delayedCall(200, () => this.playNextStep());
       return;
@@ -421,9 +433,7 @@ export class BattleScene extends Phaser.Scene {
 
     const event = this.battleLog[this.currentStep];
     this.currentStep++;
-
-    const baseDelay = 800;
-    const stepDelay = baseDelay / this.speedMultiplier;
+    const stepDelay = 800 / this.speedMultiplier;
 
     if (event.type === 'attack') {
       this.animateAttack(event);
@@ -441,7 +451,6 @@ export class BattleScene extends Phaser.Scene {
     const targetKey = event.targetId + event.targetTeam;
     const attacker = this.unitSprites[attackerKey];
     const target = this.unitSprites[targetKey];
-
     if (!attacker || !target) return;
 
     const home = this.unitHomePositions[attackerKey];
@@ -452,12 +461,10 @@ export class BattleScene extends Phaser.Scene {
       : this.teamB.find(u => u.id === event.attackerId);
 
     const element = attackerUnit ? ELEMENTS[attackerUnit.element] : ELEMENTS.METAL;
-
     const dx = target.x - home.x;
     const dy = target.y - home.y;
     const lungeX = home.x + dx * 0.5;
     const lungeY = home.y + dy * 0.5;
-
     const baseScale = attacker.baseScale || 0.22;
     const speedFactor = 1 / this.speedMultiplier;
 
@@ -465,36 +472,28 @@ export class BattleScene extends Phaser.Scene {
       targets: attacker,
       x: home.x - dx * 0.08,
       y: home.y - dy * 0.08,
-      scaleX: baseScale * 1.05,
-      scaleY: baseScale * 1.05,
-      duration: 120 * speedFactor,
-      ease: 'Quad.easeOut',
+      scaleX: baseScale * 1.05, scaleY: baseScale * 1.05,
+      duration: 120 * speedFactor, ease: 'Quad.easeOut',
       onComplete: () => {
         const trail = this.add.rectangle(attacker.x, attacker.y, 200, 40, element.glow, 0.6)
           .setDepth(attacker.depth - 1);
-
         this.tweens.add({
           targets: attacker,
           x: lungeX, y: lungeY,
-          scaleX: baseScale * 1.25,
-          scaleY: baseScale * 1.25,
-          duration: 200 * speedFactor,
-          ease: 'Power2.easeOut',
+          scaleX: baseScale * 1.25, scaleY: baseScale * 1.25,
+          duration: 200 * speedFactor, ease: 'Power2.easeOut',
           onComplete: () => {
             this.spawnImpactParticles(target.x, target.y, element);
             this.flashElementalGlow(targetKey, element);
             if (!this.isPaused) this.cameras.main.shake(150, 0.004);
-
             this.tweens.add({
               targets: attacker,
               x: home.x, y: home.y,
               scaleX: baseScale, scaleY: baseScale,
-              duration: 260 * speedFactor,
-              ease: 'Power2.easeIn'
+              duration: 260 * speedFactor, ease: 'Power2.easeIn'
             });
           }
         });
-
         this.tweens.add({
           targets: trail, alpha: 0,
           duration: 350 * speedFactor,
@@ -505,28 +504,22 @@ export class BattleScene extends Phaser.Scene {
 
     this.time.delayedCall(320 * speedFactor, () => {
       const damageColor = event.damage >= 100 ? '#ffaa00'
-                        : event.damage >= 50 ? '#ff6666'
-                        : '#ffffff';
-
+                        : event.damage >= 50 ? '#ff6666' : '#ffffff';
       const dmgText = this.add.text(target.x, target.y - 80, `-${event.damage}`, {
-        fontFamily: 'monospace',
+        fontFamily: 'JetBrains Mono, monospace',
         fontSize: event.damage >= 100 ? '60px' : '44px',
-        color: damageColor,
-        fontStyle: 'bold',
+        color: damageColor, fontStyle: 'bold',
         stroke: '#000000', strokeThickness: 8
       }).setOrigin(0.5).setScale(0.3).setDepth(1000);
 
       this.tweens.add({
         targets: dmgText, scale: 1.2,
-        duration: 150 * speedFactor,
-        ease: 'Back.easeOut',
+        duration: 150 * speedFactor, ease: 'Back.easeOut',
         onComplete: () => {
           this.tweens.add({
             targets: dmgText,
-            y: target.y - 200,
-            scale: 0.9, alpha: 0,
-            duration: 800 * speedFactor,
-            ease: 'Power2.easeOut',
+            y: target.y - 200, scale: 0.9, alpha: 0,
+            duration: 800 * speedFactor, ease: 'Power2.easeOut',
             onComplete: () => dmgText.destroy()
           });
         }
@@ -538,16 +531,13 @@ export class BattleScene extends Phaser.Scene {
         y: target.y + (Math.random() - 0.5) * 28,
         angle: (Math.random() - 0.5) * 12,
         duration: 60 * speedFactor,
-        yoyo: true, repeat: 3,
-        ease: 'Sine.easeInOut'
+        yoyo: true, repeat: 3, ease: 'Sine.easeInOut'
       });
 
       this.tweens.add({
-        targets: target,
-        alpha: 0.25,
+        targets: target, alpha: 0.25,
         duration: 80 * speedFactor,
-        yoyo: true, repeat: 2,
-        ease: 'Quad.easeOut'
+        yoyo: true, repeat: 2, ease: 'Quad.easeOut'
       });
 
       const hpBar = this.unitHpBars[targetKey];
@@ -561,10 +551,8 @@ export class BattleScene extends Phaser.Scene {
         this.tweens.add({
           targets: hpBar,
           width: hpBar.maxWidth * ratio,
-          duration: 250 * speedFactor,
-          ease: 'Power2.easeOut'
+          duration: 250 * speedFactor, ease: 'Power2.easeOut'
         });
-
         if (ratio <= 0.25) hpBar.fillColor = 0xff4444;
         else if (ratio <= 0.5) hpBar.fillColor = 0xffaa44;
         else hpBar.fillColor = 0x66e0c0;
@@ -575,22 +563,17 @@ export class BattleScene extends Phaser.Scene {
 
   spawnImpactParticles(x, y, element) {
     const colors = PARTICLE_COLORS[element.name.toUpperCase()] || PARTICLE_COLORS.METAL;
-
     const ring = this.add.circle(x, y, 20, 0xffffff, 0.8).setDepth(999);
     this.tweens.add({
       targets: ring, scale: 6, alpha: 0,
-      duration: 500 / this.speedMultiplier,
-      ease: 'Power2.easeOut',
+      duration: 500 / this.speedMultiplier, ease: 'Power2.easeOut',
       onComplete: () => ring.destroy()
     });
-
     for (let i = 0; i < 16; i++) {
       const angle = (Math.PI * 2 * i) / 16 + Math.random() * 0.4;
       const dist = 100 + Math.random() * 120;
       const color = colors[Math.floor(Math.random() * colors.length)];
-
       const particle = this.add.circle(x, y, 4 + Math.random() * 6, color, 1).setDepth(999);
-
       this.tweens.add({
         targets: particle,
         x: x + Math.cos(angle) * dist,
@@ -606,14 +589,10 @@ export class BattleScene extends Phaser.Scene {
   flashElementalGlow(targetKey, element) {
     const glow = this.unitGlows[targetKey];
     if (!glow) return;
-
     const originalColor = glow.fillColor;
     glow.fillColor = 0xffffff;
     glow.setAlpha(0.8);
-
-    this.time.delayedCall(200 / this.speedMultiplier, () => {
-      glow.fillColor = originalColor;
-    });
+    this.time.delayedCall(200 / this.speedMultiplier, () => { glow.fillColor = originalColor; });
   }
 
   animateKO(event) {
@@ -625,28 +604,21 @@ export class BattleScene extends Phaser.Scene {
     const hpText = this.unitHpTexts[key];
     const icon = this.unitElementIcons[key];
     const aura = this.unitAuras[key];
-
     if (!sprite) return;
 
     const unit = event.team === 'A'
       ? this.teamA.find(u => u.id === event.unitId)
       : this.teamB.find(u => u.id === event.unitId);
-    if (unit) {
-      this.spawnImpactParticles(sprite.x, sprite.y, ELEMENTS[unit.element]);
-    }
+    if (unit) this.spawnImpactParticles(sprite.x, sprite.y, ELEMENTS[unit.element]);
 
     const baseScale = sprite.baseScale || 0.22;
-
     this.tweens.add({
       targets: sprite,
       alpha: 0, angle: 90,
       y: sprite.y + 100,
-      scaleX: baseScale * 0.5,
-      scaleY: baseScale * 0.5,
-      duration: 700 / this.speedMultiplier,
-      ease: 'Power2.easeIn'
+      scaleX: baseScale * 0.5, scaleY: baseScale * 0.5,
+      duration: 700 / this.speedMultiplier, ease: 'Power2.easeIn'
     });
-
     if (glow) this.tweens.add({ targets: glow, alpha: 0, scale: 0.3, duration: 500 / this.speedMultiplier });
     if (shadow) this.tweens.add({ targets: shadow, alpha: 0, scaleX: 0.3, duration: 500 / this.speedMultiplier });
     if (hpBar) this.tweens.add({ targets: hpBar, alpha: 0, duration: 300 / this.speedMultiplier });
@@ -680,29 +652,30 @@ export class BattleScene extends Phaser.Scene {
     const popupColor = isWin ? 0x66e0c0 : 0xff5555;
     const popupText = isWin ? '★ VICTORY ★' : 'DEFEAT';
     const rewardText = isWin
-      ? `+${50 + (this.state.stage - 1) * 10} GOLD`
-      : '+10 GOLD';
+      ? `+${50 + (this.state.stage - 1) * 10} GOLD` : '+10 GOLD';
 
     this.add.rectangle(width / 2, height / 2, 880, 580, 0x0a0e1a)
       .setStrokeStyle(6, popupColor).setDepth(901);
 
     const titleText = this.add.text(width / 2, height / 2 - 180, popupText, {
-      fontFamily: 'monospace', fontSize: '84px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '84px',
       color: '#' + popupColor.toString(16).padStart(6, '0'),
       fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 10
     }).setOrigin(0.5).setDepth(902).setAlpha(0);
 
     const rewardLabel = this.add.text(width / 2, height / 2 - 50, rewardText, {
-      fontFamily: 'monospace', fontSize: '56px',
-      color: '#ffd966', fontStyle: 'bold',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '56px', color: '#ffd966', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 6
     }).setOrigin(0.5).setDepth(902).setAlpha(0);
 
     let extraLine;
     if (isWin) {
       extraLine = this.add.text(width / 2, height / 2 + 40, `Stage ${this.state.stage} unlocked!`, {
-        fontFamily: 'monospace', fontSize: '28px', color: '#8899aa'
+        fontFamily: 'Rajdhani, monospace',
+        fontSize: '28px', color: '#8899aa', fontStyle: '600'
       }).setOrigin(0.5).setDepth(902).setAlpha(0);
     }
 
@@ -711,7 +684,8 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true }).setDepth(902).setAlpha(0);
 
     const btnText = this.add.text(width / 2, height / 2 + 180, 'CONTINUE', {
-      fontFamily: 'monospace', fontSize: '36px',
+      fontFamily: 'Orbitron, monospace',
+      fontSize: '36px',
       color: '#' + popupColor.toString(16).padStart(6, '0'),
       fontStyle: 'bold', letterSpacing: 4
     }).setOrigin(0.5).setDepth(903).setAlpha(0);
@@ -743,15 +717,13 @@ export class BattleScene extends Phaser.Scene {
       const color = colors[Math.floor(Math.random() * colors.length)];
       const confetti = this.add.rectangle(x, y, 14, 22, color)
         .setDepth(950).setAngle(Math.random() * 360);
-
       this.tweens.add({
         targets: confetti,
         y: height + 40,
         x: x + (Math.random() - 0.5) * 400,
         angle: confetti.angle + 720,
         duration: 2500 + Math.random() * 1500,
-        delay: i * 25,
-        ease: 'Linear',
+        delay: i * 25, ease: 'Linear',
         onComplete: () => confetti.destroy()
       });
     }
